@@ -43,9 +43,9 @@ These guidelines define how we build OctarineCodex with quality-first engineerin
   - CLI: dotnet test
   - Junie: use run_test fullSolution (preferred) or target specific FQNs as needed.
 
-## 5) Build & Run
+## 5) Build & Verification
 - Build: dotnet build OctarineCodex.sln -c Debug
-- Run (MonoGame): dotnet run --project OctarineCodex\OctarineCodex.csproj
+- Verification: All functionality is verified through automated tests (unit + integration). Interactive execution is discouraged as it contradicts our non-interactive testing principles.
 - Content pipeline: keep Content.mgcb under version control; generated content artifacts should be excluded if reproducible from source.
 
 ## 6) Code Style & Quality Gates

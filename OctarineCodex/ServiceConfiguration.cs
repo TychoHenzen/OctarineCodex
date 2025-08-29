@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using OctarineCodex.Input;
+using OctarineCodex.Maps;
 
 namespace OctarineCodex;
 
@@ -20,6 +21,10 @@ public static class ServiceConfiguration
         services.AddSingleton<IKeyboardInputProvider, DesktopKeyboardInputProvider>();
         services.AddSingleton<IControllerInputProvider, DesktopControllerInputProvider>();
         services.AddSingleton<IInputService, CompositeInputService>();
+
+        // LDTK map system services
+        services.AddSingleton<ILdtkMapService, LdtkMonoGameMapService>();
+        services.AddTransient<ILdtkMapRenderer, LdtkMapRenderer>();
 
         return services;
     }

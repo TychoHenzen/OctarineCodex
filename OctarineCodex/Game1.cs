@@ -1,8 +1,10 @@
 ﻿using System;
+using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using OctarineCodex.Input;
+using OctarineCodex.Maps;
 
 namespace OctarineCodex;
 
@@ -13,6 +15,10 @@ public class Game1 : Game
 
     // Input
     private readonly IInputService _inputService;
+
+    // LDTK services
+    private readonly ILdtkMapService _mapService;
+    private readonly ILdtkMapRenderer _mapRenderer;
 
     // Primitive 1x1 texture for drawing rectangles
     private Texture2D _pixel = null!;
@@ -27,9 +33,11 @@ public class Game1 : Game
 
 
 
-    public Game1(IInputService inputService)
+    public Game1(IInputService inputService, ILdtkMapService mapService, ILdtkMapRenderer mapRenderer)
     {
         _inputService = inputService ?? throw new ArgumentNullException(nameof(inputService));
+        _mapService = mapService ?? throw new ArgumentNullException(nameof(mapService));
+        _mapRenderer = mapRenderer ?? throw new ArgumentNullException(nameof(mapRenderer));
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
@@ -48,7 +56,7 @@ public class Game1 : Game
         _playerPos = new Vector2((vp.Width - PlayerSize) / 2f, (vp.Height - PlayerSize) / 2f);
     }
 
-    protected override void LoadContent()
+    protected override async void LoadContent()
     {
         
         _spriteBatch = new SpriteBatch(GraphicsDevice);
@@ -56,6 +64,17 @@ public class Game1 : Game
         // Create a 1x1 white texture to draw colored rectangles
         _pixel = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
         _pixel.SetData(new[] { Color.White });
+
+        // Initialize LDTK renderer
+        _mapRenderer.Initialize(GraphicsDevice);
+
+        // Load LDTK map
+        var ldtkPath = Path.Combine(Content.RootDirectory, "test_level2.ldtk");
+        var project = await _mapService.LoadProjectAsync(ldtkPath);
+        if (project != null)
+        {
+            await _mapRenderer.LoadTilesetsAsync(project, Content.RootDirectory);
+        }
     }
 
     protected override void Update(GameTime gameTime)
@@ -86,15 +105,27 @@ public class Game1 : Game
 
         _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
-        // Draw pink/black checker background
-        var vp = GraphicsDevice.Viewport;
-        for (int y = 0; y < vp.Height; y += TileSize)
+        // Draw LDTK map if loaded, otherwise draw fallback checker background
+        if (_mapService.IsProjectLoaded)
         {
-            for (int x = 0; x < vp.Width; x += TileSize)
+            var level = _mapService.GetLevel("Entrance");
+            if (level != null)
             {
-                bool isPink = (((x / TileSize) + (y / TileSize)) % 2) == 0;
-                var color = isPink ? Color.HotPink : Color.Black;
-                _spriteBatch.Draw(_pixel, new Rectangle(x, y, TileSize, TileSize), color);
+                _mapRenderer.RenderLevel(level, _spriteBatch, Matrix.Identity);
+            }
+        }
+        else
+        {
+            // Fallback: Draw pink/black checker background
+            var vp = GraphicsDevice.Viewport;
+            for (int y = 0; y < vp.Height; y += TileSize)
+            {
+                for (int x = 0; x < vp.Width; x += TileSize)
+                {
+                    bool isPink = (((x / TileSize) + (y / TileSize)) % 2) == 0;
+                    var color = isPink ? Color.HotPink : Color.Black;
+                    _spriteBatch.Draw(_pixel, new Rectangle(x, y, TileSize, TileSize), color);
+                }
             }
         }
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using OctarineCodex;
 using OctarineCodex.Input;
+using OctarineCodex.Maps;
 
 // Set up dependency injection container
 var services = new ServiceCollection();
@@ -10,7 +11,9 @@ var serviceProvider = services.BuildServiceProvider();
 
 // Create game with injected services
 var inputService = serviceProvider.GetRequiredService<IInputService>();
-using var game = new Game1(inputService);
+var mapService = serviceProvider.GetRequiredService<ILdtkMapService>();
+var mapRenderer = serviceProvider.GetRequiredService<ILdtkMapRenderer>();
+using var game = new Game1(inputService, mapService, mapRenderer);
 game.Run();
 
 await serviceProvider.DisposeAsync();
