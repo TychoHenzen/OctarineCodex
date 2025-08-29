@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using OctarineCodex.Input;
+using OctarineCodex.Logging;
 using OctarineCodex.Maps;
 
 namespace OctarineCodex;
@@ -12,6 +13,9 @@ public class OctarineGameHost : Game
 {
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch = null!;
+
+    // Logging
+    private readonly ILoggingService _logger;
 
     // Input
     private readonly IInputService _inputService;
@@ -33,8 +37,9 @@ public class OctarineGameHost : Game
 
 
 
-    public OctarineGameHost(IInputService inputService, ILdtkMapService mapService, ILdtkMapRenderer mapRenderer)
+    public OctarineGameHost(ILoggingService logger, IInputService inputService, ILdtkMapService mapService, ILdtkMapRenderer mapRenderer)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _inputService = inputService ?? throw new ArgumentNullException(nameof(inputService));
         _mapService = mapService ?? throw new ArgumentNullException(nameof(mapService));
         _mapRenderer = mapRenderer ?? throw new ArgumentNullException(nameof(mapRenderer));
@@ -70,11 +75,11 @@ public class OctarineGameHost : Game
 
         // Load LDTK map
         var ldtkPath = Path.Combine(Content.RootDirectory, "test_level2.ldtk");
-        Console.WriteLine($"[DEBUG_LOG] Content.RootDirectory: '{Content.RootDirectory}'");
-        Console.WriteLine($"[DEBUG_LOG] Current working directory: '{Directory.GetCurrentDirectory()}'");
-        Console.WriteLine($"[DEBUG_LOG] Constructed LDTK path: '{ldtkPath}'");
-        Console.WriteLine($"[DEBUG_LOG] Full resolved LDTK path: '{Path.GetFullPath(ldtkPath)}'");
-        Console.WriteLine($"[DEBUG_LOG] LDTK file exists: {File.Exists(ldtkPath)}");
+        _logger.Debug($"Content.RootDirectory: '{Content.RootDirectory}'");
+        _logger.Debug($"Current working directory: '{Directory.GetCurrentDirectory()}'");
+        _logger.Debug($"Constructed LDTK path: '{ldtkPath}'");
+        _logger.Debug($"Full resolved LDTK path: '{Path.GetFullPath(ldtkPath)}'");
+        _logger.Debug($"LDTK file exists: {File.Exists(ldtkPath)}");
         var project = await _mapService.LoadProjectAsync(ldtkPath);
         if (project != null)
         {
@@ -113,16 +118,14 @@ public class OctarineGameHost : Game
         // Draw LDTK map if loaded, otherwise draw fallback checker background
         if (_mapService.IsProjectLoaded)
         {
-            Console.WriteLine("[DEBUG_LOG] LDTK project is loaded, attempting to render");
             var level = _mapService.GetLevel("Entrance");
             if (level != null)
             {
-                Console.WriteLine($"[DEBUG_LOG] Found level 'Entrance' with {level.LayerInstances.Length} layers, rendering...");
                 _mapRenderer.RenderLevel(level, _spriteBatch, Matrix.Identity);
             }
             else
             {
-                Console.WriteLine("[DEBUG_LOG] Level 'Entrance' not found!");
+                _logger.Warn("Level 'Entrance' not found!");
             }
         }
         else

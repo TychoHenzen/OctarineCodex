@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using OctarineCodex.Input;
+using OctarineCodex.Logging;
 using OctarineCodex.Maps;
 
 namespace OctarineCodex;
@@ -17,6 +18,9 @@ public static class ServiceConfiguration
     /// <returns>The service collection for method chaining.</returns>
     public static IServiceCollection AddOctarineServices(this IServiceCollection services)
     {
+        // Logging services
+        services.AddSingleton<ILoggingService, LoggingService>();
+
         // Input system services
         services.AddSingleton<IKeyboardInputProvider, DesktopKeyboardInputProvider>();
         services.AddSingleton<IControllerInputProvider, DesktopControllerInputProvider>();

@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Xunit;
 using FluentAssertions;
+using OctarineCodex.Logging;
 using OctarineCodex.Maps;
 
 namespace OctarineCodex.Tests.Maps;
@@ -15,7 +16,8 @@ public class LdtkLoadingTests
     public async Task LoadProjectAsync_ShouldLoadTestLevel2Successfully()
     {
         // Arrange
-        var mapService = new LdtkMonoGameMapService();
+        using var logger = new LoggingService();
+        var mapService = new LdtkMonoGameMapService(logger);
         var testFilePath = Path.Combine("..\\..\\..\\..\\OctarineCodex\\Content", "test_level2.ldtk");
         
         // Act
@@ -24,49 +26,23 @@ public class LdtkLoadingTests
         // Assert
         project.Should().NotBeNull("test_level2.ldtk should load successfully");
         project!.Levels.Should().NotBeEmpty("project should contain levels");
-        
-        System.Console.WriteLine($"[DEBUG_LOG] Loaded project with {project.Levels.Length} levels");
-        foreach (var level in project.Levels)
-        {
-            System.Console.WriteLine($"[DEBUG_LOG] Level: {level.Identifier} ({level.PixelWidth}x{level.PixelHeight}) with {level.LayerInstances.Length} layers");
-            foreach (var layer in level.LayerInstances)
-            {
-                System.Console.WriteLine($"[DEBUG_LOG]   Layer: {layer.Identifier} (type: {layer.Type}, GridSize: {layer.GridSize}, TilesetDefUid: {layer.TilesetDefUid})");
-                System.Console.WriteLine($"[DEBUG_LOG]     GridTiles: {layer.GridTiles.Length}, EntityInstances: {layer.EntityInstances.Length}, IntGridCsv: {layer.IntGridCsv.Length}");
-            }
-        }
-        
-        System.Console.WriteLine($"[DEBUG_LOG] Tilesets in project: {project.Definitions.Tilesets.Length}");
-        foreach (var tileset in project.Definitions.Tilesets)
-        {
-            System.Console.WriteLine($"[DEBUG_LOG]   Tileset: {tileset.Identifier} (UID: {tileset.Uid}, {tileset.PixelWidth}x{tileset.PixelHeight}, GridSize: {tileset.TileGridSize})");
-        }
+        project.Definitions.Tilesets.Should().NotBeEmpty("project should contain tilesets");
     }
     
     [Fact]
     public async Task GetLevel_ShouldFindEntranceLevel()
     {
         // Arrange
-        var mapService = new LdtkMonoGameMapService();
+        using var logger = new LoggingService();
+        var mapService = new LdtkMonoGameMapService(logger);
         var testFilePath = Path.Combine("..\\..\\..\\..\\OctarineCodex\\Content", "test_level2.ldtk");
         await mapService.LoadProjectAsync(testFilePath);
         
         // Act
         var level = mapService.GetLevel("Entrance");
         
-        // Assert & Debug
-        if (level != null)
-        {
-            System.Console.WriteLine($"[DEBUG_LOG] Found 'Entrance' level with {level.LayerInstances.Length} layers");
-        }
-        else
-        {
-            System.Console.WriteLine("[DEBUG_LOG] 'Entrance' level not found! Available levels:");
-            var allLevels = mapService.GetAllLevels();
-            foreach (var availableLevel in allLevels)
-            {
-                System.Console.WriteLine($"[DEBUG_LOG]   Available: {availableLevel.Identifier}");
-            }
-        }
+        // Assert
+        level.Should().NotBeNull("'Entrance' level should be found in the project");
+        level!.LayerInstances.Should().NotBeEmpty("'Entrance' level should contain layers");
     }
 }

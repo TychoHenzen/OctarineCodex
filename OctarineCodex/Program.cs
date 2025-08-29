@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using OctarineCodex;
 using OctarineCodex.Input;
+using OctarineCodex.Logging;
 using OctarineCodex.Maps;
 
 // Set up dependency injection container
@@ -10,10 +11,11 @@ services.AddOctarineServices();
 var serviceProvider = services.BuildServiceProvider();
 
 // Create game with injected services
+var logger = serviceProvider.GetRequiredService<ILoggingService>();
 var inputService = serviceProvider.GetRequiredService<IInputService>();
 var mapService = serviceProvider.GetRequiredService<ILdtkMapService>();
 var mapRenderer = serviceProvider.GetRequiredService<ILdtkMapRenderer>();
-using var game = new OctarineGameHost(inputService, mapService, mapRenderer);
+using var game = new OctarineGameHost(logger, inputService, mapService, mapRenderer);
 game.Run();
 
 await serviceProvider.DisposeAsync();

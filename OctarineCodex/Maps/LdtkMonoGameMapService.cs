@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework.Content;
+using OctarineCodex.Logging;
 
 namespace OctarineCodex.Maps;
 
@@ -12,8 +13,18 @@ namespace OctarineCodex.Maps;
 /// </summary>
 public sealed class LdtkMonoGameMapService : ILdtkMapService
 {
+    private readonly ILoggingService _logger;
     private LdtkProject? _currentProject;
     private string? _currentFilePath;
+
+    /// <summary>
+    /// Initializes a new instance of the LdtkMonoGameMapService class.
+    /// </summary>
+    /// <param name="logger">The logging service for debug output.</param>
+    public LdtkMonoGameMapService(ILoggingService logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
 
     /// <summary>
     /// Gets a value indicating whether a project is currently loaded.
@@ -31,11 +42,11 @@ public sealed class LdtkMonoGameMapService : ILdtkMapService
         {
             if (!File.Exists(filePath))
             {
-                Console.WriteLine($"LDTK file not found: {filePath}");
+                _logger.Error($"LDTK file not found: {filePath}");
                 return null;
             }
 
-            Console.WriteLine($"Loading LDTK file: {filePath}");
+            _logger.Info($"Loading LDTK file: {filePath}");
             
             // For now, let's try loading with our existing JSON approach first
             // and see if test_level2.ldtk works with our current implementation
@@ -54,16 +65,16 @@ public sealed class LdtkMonoGameMapService : ILdtkMapService
             {
                 _currentProject = project;
                 _currentFilePath = filePath;
-                Console.WriteLine($"Successfully loaded LDTK project with {project.Levels.Length} levels");
+                _logger.Info($"Successfully loaded LDTK project with {project.Levels.Length} levels");
                 return project;
             }
             
-            Console.WriteLine("Failed to parse LDTK project");
+            _logger.Error("Failed to parse LDTK project");
             return null;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading LDTK project: {ex.Message}");
+            _logger.Exception(ex, "Error loading LDTK project");
             return null;
         }
     }
@@ -77,7 +88,7 @@ public sealed class LdtkMonoGameMapService : ILdtkMapService
     {
         if (_currentProject is null)
         {
-            Console.WriteLine("No project loaded");
+            _logger.Warn("No project loaded");
             return null;
         }
 
@@ -86,11 +97,7 @@ public sealed class LdtkMonoGameMapService : ILdtkMapService
             
         if (level is null)
         {
-            Console.WriteLine($"Level '{identifier}' not found. Available levels: {string.Join(", ", _currentProject.Levels.Select(l => l.Identifier))}");
-        }
-        else
-        {
-            Console.WriteLine($"Found level '{identifier}' with {level.LayerInstances.Length} layers");
+            _logger.Warn($"Level '{identifier}' not found. Available levels: {string.Join(", ", _currentProject.Levels.Select(l => l.Identifier))}");
         }
         
         return level;
@@ -104,11 +111,10 @@ public sealed class LdtkMonoGameMapService : ILdtkMapService
     {
         if (_currentProject is null)
         {
-            Console.WriteLine("No project loaded");
+            _logger.Warn("No project loaded");
             return [];
         }
         
-        Console.WriteLine($"Returning {_currentProject.Levels.Length} levels");
         return _currentProject.Levels;
     }
 
