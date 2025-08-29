@@ -23,6 +23,11 @@
         </EmbeddedResource>
     </ItemGroup>
     <ItemGroup>
+        <Content Include="Content\*.ldtk">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+    <ItemGroup>
         <PackageReference Include="LDtkMonogame" Version="1.8.0" />
         <PackageReference Include="LDtkMonogame.ContentPipeline" Version="1.8.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />

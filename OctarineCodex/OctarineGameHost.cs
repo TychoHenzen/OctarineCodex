@@ -8,7 +8,7 @@ using OctarineCodex.Maps;
 
 namespace OctarineCodex;
 
-public class Game1 : Game
+public class OctarineGameHost : Game
 {
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch = null!;
@@ -33,7 +33,7 @@ public class Game1 : Game
 
 
 
-    public Game1(IInputService inputService, ILdtkMapService mapService, ILdtkMapRenderer mapRenderer)
+    public OctarineGameHost(IInputService inputService, ILdtkMapService mapService, ILdtkMapRenderer mapRenderer)
     {
         _inputService = inputService ?? throw new ArgumentNullException(nameof(inputService));
         _mapService = mapService ?? throw new ArgumentNullException(nameof(mapService));
@@ -70,6 +70,11 @@ public class Game1 : Game
 
         // Load LDTK map
         var ldtkPath = Path.Combine(Content.RootDirectory, "test_level2.ldtk");
+        Console.WriteLine($"[DEBUG_LOG] Content.RootDirectory: '{Content.RootDirectory}'");
+        Console.WriteLine($"[DEBUG_LOG] Current working directory: '{Directory.GetCurrentDirectory()}'");
+        Console.WriteLine($"[DEBUG_LOG] Constructed LDTK path: '{ldtkPath}'");
+        Console.WriteLine($"[DEBUG_LOG] Full resolved LDTK path: '{Path.GetFullPath(ldtkPath)}'");
+        Console.WriteLine($"[DEBUG_LOG] LDTK file exists: {File.Exists(ldtkPath)}");
         var project = await _mapService.LoadProjectAsync(ldtkPath);
         if (project != null)
         {
@@ -108,10 +113,16 @@ public class Game1 : Game
         // Draw LDTK map if loaded, otherwise draw fallback checker background
         if (_mapService.IsProjectLoaded)
         {
+            Console.WriteLine("[DEBUG_LOG] LDTK project is loaded, attempting to render");
             var level = _mapService.GetLevel("Entrance");
             if (level != null)
             {
+                Console.WriteLine($"[DEBUG_LOG] Found level 'Entrance' with {level.LayerInstances.Length} layers, rendering...");
                 _mapRenderer.RenderLevel(level, _spriteBatch, Matrix.Identity);
+            }
+            else
+            {
+                Console.WriteLine("[DEBUG_LOG] Level 'Entrance' not found!");
             }
         }
         else

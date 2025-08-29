@@ -13,7 +13,7 @@ var serviceProvider = services.BuildServiceProvider();
 var inputService = serviceProvider.GetRequiredService<IInputService>();
 var mapService = serviceProvider.GetRequiredService<ILdtkMapService>();
 var mapRenderer = serviceProvider.GetRequiredService<ILdtkMapRenderer>();
-using var game = new Game1(inputService, mapService, mapRenderer);
+using var game = new OctarineGameHost(inputService, mapService, mapRenderer);
 game.Run();
 
 await serviceProvider.DisposeAsync();

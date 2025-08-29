@@ -44,27 +44,32 @@ public sealed class LdtkMapRenderer : ILdtkMapRenderer
             throw new InvalidOperationException("Renderer must be initialized before loading tilesets");
         }
 
+        Console.WriteLine($"[DEBUG_LOG] LoadTilesetsAsync called with {project.Definitions.Tilesets.Length} tilesets");
+
         foreach (var tileset in project.Definitions.Tilesets)
         {
             try
             {
+                Console.WriteLine($"[DEBUG_LOG] Loading tileset {tileset.Identifier} (UID: {tileset.Uid}) - {tileset.PixelWidth}x{tileset.PixelHeight}, TileGridSize: {tileset.TileGridSize}");
+                
                 // For now, we'll create placeholder textures since we don't have actual tileset images
                 // In a real implementation, you would load the actual tileset images from tileset.RelPath
                 var texture = new Texture2D(_graphicsDevice, tileset.PixelWidth, tileset.PixelHeight);
                 var colorData = new Color[tileset.PixelWidth * tileset.PixelHeight];
                 
-                // Fill with a checkerboard pattern for visualization
+                // Fill with a checkerboard pattern for visualization - use bright, visible colors
                 for (int i = 0; i < colorData.Length; i++)
                 {
                     var x = i % tileset.PixelWidth;
                     var y = i / tileset.PixelWidth;
                     var tileX = x / tileset.TileGridSize;
                     var tileY = y / tileset.TileGridSize;
-                    colorData[i] = ((tileX + tileY) % 2 == 0) ? Color.LightBlue : Color.DarkBlue;
+                    colorData[i] = ((tileX + tileY) % 2 == 0) ? Color.Yellow : Color.Orange;
                 }
                 
                 texture.SetData(colorData);
                 _tilesetTextures[tileset.Uid] = texture;
+                Console.WriteLine($"[DEBUG_LOG] Successfully created tileset texture for {tileset.Identifier}");
             }
             catch (Exception ex)
             {
@@ -73,6 +78,7 @@ public sealed class LdtkMapRenderer : ILdtkMapRenderer
             }
         }
 
+        Console.WriteLine($"[DEBUG_LOG] LoadTilesetsAsync completed. Loaded {_tilesetTextures.Count} tilesets");
         await Task.CompletedTask; // Placeholder for actual async loading
     }
 
@@ -89,9 +95,12 @@ public sealed class LdtkMapRenderer : ILdtkMapRenderer
             throw new InvalidOperationException("Renderer must be initialized before rendering");
         }
 
+        Console.WriteLine($"[DEBUG_LOG] RenderLevel called with {level.LayerInstances.Length} layers");
+        
         // Render layers in order (background to foreground)
         foreach (var layer in level.LayerInstances)
         {
+            Console.WriteLine($"[DEBUG_LOG] Rendering layer: {layer.Identifier} (type: {layer.Type})");
             RenderLayer(layer, spriteBatch, camera);
         }
     }
@@ -108,6 +117,11 @@ public sealed class LdtkMapRenderer : ILdtkMapRenderer
         {
             throw new InvalidOperationException("Renderer must be initialized before rendering");
         }
+
+        // Draw a visible debug outline for the layer bounds to confirm rendering is working
+        var layerBounds = new Rectangle(0, 0, layer.CellWidth * layer.GridSize, layer.CellHeight * layer.GridSize);
+        DrawRectangleOutline(spriteBatch, layerBounds, Color.Lime, 2);
+        Console.WriteLine($"[DEBUG_LOG] Drawing debug outline for layer {layer.Identifier} at bounds: {layerBounds}");
 
         switch (layer.Type.ToLowerInvariant())
         {
@@ -156,11 +170,16 @@ public sealed class LdtkMapRenderer : ILdtkMapRenderer
 
     private void RenderTileLayer(LdtkLayerInstance layer, SpriteBatch spriteBatch, Matrix camera)
     {
+        Console.WriteLine($"[DEBUG_LOG] RenderTileLayer called for layer {layer.Identifier}, TilesetDefUid: {layer.TilesetDefUid}, GridTiles count: {layer.GridTiles.Length}");
+        
         if (layer.TilesetDefUid is null || !_tilesetTextures.TryGetValue(layer.TilesetDefUid.Value, out var tileset))
         {
+            Console.WriteLine($"[DEBUG_LOG] No tileset available for layer {layer.Identifier}. TilesetDefUid: {layer.TilesetDefUid}, Available tilesets: {string.Join(", ", _tilesetTextures.Keys)}");
             return; // No tileset available
         }
 
+        Console.WriteLine($"[DEBUG_LOG] Found tileset for layer {layer.Identifier}, drawing {layer.GridTiles.Length} tiles");
+        
         foreach (var tile in layer.GridTiles)
         {
             var destPosition = new Vector2(tile.Px[0], tile.Px[1]);
@@ -177,13 +196,17 @@ public sealed class LdtkMapRenderer : ILdtkMapRenderer
 
     private void RenderIntGridLayer(LdtkLayerInstance layer, SpriteBatch spriteBatch, Matrix camera)
     {
+        Console.WriteLine($"[DEBUG_LOG] RenderIntGridLayer called for layer {layer.Identifier}, IntGridCsv length: {layer.IntGridCsv.Length}");
+        
         if (_pixelTexture is null)
         {
+            Console.WriteLine("[DEBUG_LOG] _pixelTexture is null, cannot render IntGrid layer");
             return;
         }
 
         // Render IntGrid as colored tiles
         var colors = new[] { Color.Transparent, Color.Red, Color.Green, Color.Blue, Color.Yellow };
+        int drawnCells = 0;
         
         for (int i = 0; i < layer.IntGridCsv.Length; i++)
         {
@@ -196,7 +219,10 @@ public sealed class LdtkMapRenderer : ILdtkMapRenderer
             
             var destRect = new Rectangle(x, y, layer.GridSize, layer.GridSize);
             spriteBatch.Draw(_pixelTexture, destRect, color * 0.8f);
+            drawnCells++;
         }
+        
+        Console.WriteLine($"[DEBUG_LOG] IntGrid layer {layer.Identifier} drew {drawnCells} non-empty cells");
     }
 
     private void DrawRectangleOutline(SpriteBatch spriteBatch, Rectangle rectangle, Color color, int thickness)
