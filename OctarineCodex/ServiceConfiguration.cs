@@ -6,13 +6,13 @@ using OctarineCodex.Maps;
 namespace OctarineCodex;
 
 /// <summary>
-/// Configures dependency injection services for the application.
-/// Provides a composition root following SOLID principles.
+///     Configures dependency injection services for the application.
+///     Provides a composition root following SOLID principles.
 /// </summary>
 public static class ServiceConfiguration
 {
     /// <summary>
-    /// Registers all application services with the DI container.
+    ///     Registers all application services with the DI container.
     /// </summary>
     /// <param name="services">The service collection to register services with.</param>
     /// <returns>The service collection for method chaining.</returns>
@@ -26,9 +26,9 @@ public static class ServiceConfiguration
         services.AddSingleton<IControllerInputProvider, DesktopControllerInputProvider>();
         services.AddSingleton<IInputService, CompositeInputService>();
 
-        // LDTK map system services
-        services.AddSingleton<ILdtkMapService, LdtkMonoGameMapService>();
-        services.AddTransient<ILdtkMapRenderer, LdtkMapRenderer>();
+        // Simple map system services (single level rendering)
+        services.AddSingleton<ISimpleMapService, SimpleMapService>();
+        services.AddTransient<ISimpleLevelRenderer, SimpleLevelRenderer>();
 
         return services;
     }

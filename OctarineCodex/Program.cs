@@ -13,8 +13,8 @@ var serviceProvider = services.BuildServiceProvider();
 // Create game with injected services
 var logger = serviceProvider.GetRequiredService<ILoggingService>();
 var inputService = serviceProvider.GetRequiredService<IInputService>();
-var mapService = serviceProvider.GetRequiredService<ILdtkMapService>();
-var mapRenderer = serviceProvider.GetRequiredService<ILdtkMapRenderer>();
+var mapService = serviceProvider.GetRequiredService<ISimpleMapService>();
+var mapRenderer = serviceProvider.GetRequiredService<ISimpleLevelRenderer>();
 using var game = new OctarineGameHost(logger, inputService, mapService, mapRenderer);
 game.Run();
 

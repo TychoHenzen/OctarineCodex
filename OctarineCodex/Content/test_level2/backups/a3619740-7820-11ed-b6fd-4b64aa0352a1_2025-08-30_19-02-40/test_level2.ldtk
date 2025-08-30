@@ -14,11 +14,11 @@
 	"nextUid": 125,
 	"identifierStyle": "Capitalize",
 	"toc": [],
-	"worldLayout": null,
-	"worldGridWidth": null,
-	"worldGridHeight": null,
-	"defaultLevelWidth": null,
-	"defaultLevelHeight": null,
+	"worldLayout": "Free",
+	"worldGridWidth": 256,
+	"worldGridHeight": 256,
+	"defaultLevelWidth": 256,
+	"defaultLevelHeight": 256,
 	"defaultPivotX": 0,
 	"defaultPivotY": 0,
 	"defaultGridSize": 16,
@@ -33,13 +33,13 @@
 	"imageExportMode": "None",
 	"exportLevelBg": true,
 	"pngFilePattern": null,
-	"backupOnSave": true,
+	"backupOnSave": false,
 	"backupLimit": 10,
 	"backupRelPath": null,
 	"levelNamePattern": "%world_Level_%idx",
 	"tutorialDesc": "In \"Free\" world layout, levels are positionned freely in the 2D space.\n\nIn this example, some are even in different world layers (ie. above and behind). Use [PAGE UP] and [PAGE DOWN] to move between world layers.",
 	"customCommands": [],
-	"flags": [ "ExportOldTableOfContentData", "MultiWorlds", "UseMultilinesType" ],
+	"flags": [ "ExportOldTableOfContentData", "UseMultilinesType" ],
 	"defs": { "layers": [
 		{
 			"__type": "Entities",
@@ -1489,8 +1489,7 @@
 		{ "id": "Root", "tileRect": { "tilesetUid": 117, "x": 0, "y": 336, "w": 16, "h": 16 }, "color": 10184273 },
 		{ "id": "Water_shroom", "tileRect": { "tilesetUid": 117, "x": 32, "y": 336, "w": 16, "h": 16 }, "color": 6059166 }
 	], "iconTilesetUid": 117, "externalRelPath": null, "externalFileChecksum": null, "tags": [] }], "externalEnums": [], "levelFields": [] },
-	"levels": [],
-	"worlds": [{ "iid": "ca0e9bf0-c640-11ed-ad34-5d947c1a0a9f", "identifier": "World", "defaultLevelWidth": 256, "defaultLevelHeight": 256, "worldGridWidth": 256, "worldGridHeight": 256, "worldLayout": "Free", "levels": [
+	"levels": [
 		{
 			"identifier": "Entrance",
 			"iid": "a3591db0-66b0-11ec-9cd7-43878cf4d0ab",
@@ -15285,6 +15284,7 @@
 			],
 			"__neighbours": [ { "levelIid": "a3591db0-66b0-11ec-9cd7-43878cf4d0ab", "dir": "<" }, { "levelIid": "a35992e0-66b0-11ec-9cd7-8b2ebd1b98e2", "dir": "<" }, { "levelIid": "a359b9f0-66b0-11ec-9cd7-25dfb937d033", "dir": "<" }, { "levelIid": "5cbed650-66b0-11ec-895f-23240977178f", "dir": "n" } ]
 		}
-	] }],
+	],
+	"worlds": [],
 	"dummyWorldIid": "ca0e9bf0-c640-11ed-ad34-5d947c1a0a9f"
 }

@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
+using LDtk;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using OctarineCodex.Input;
 using OctarineCodex.Logging;
 using OctarineCodex.Maps;
@@ -11,33 +11,38 @@ namespace OctarineCodex;
 
 public class OctarineGameHost : Game
 {
-    private GraphicsDeviceManager _graphics;
-    private SpriteBatch _spriteBatch = null!;
+    private const int PlayerSize = 32;
+    private const float PlayerSpeed = 220f; // pixels per second
 
-    // Logging
-    private readonly ILoggingService _logger;
+    // Grid state
+    private const int TileSize = 32;
+    private readonly GraphicsDeviceManager _graphics;
 
     // Input
     private readonly IInputService _inputService;
 
-    // LDTK services
-    private readonly ILdtkMapService _mapService;
-    private readonly ILdtkMapRenderer _mapRenderer;
+    // Logging
+    private readonly ILoggingService _logger;
+    private readonly ISimpleLevelRenderer _mapRenderer;
+
+    // Simple map services
+    private readonly ISimpleMapService _mapService;
+
+    // Current loaded level
+    private LDtkLevel? _currentLevel;
+
 
     // Primitive 1x1 texture for drawing rectangles
     private Texture2D _pixel = null!;
 
     // Player state
     private Vector2 _playerPos;
-    private const int PlayerSize = 32;
-    private const float PlayerSpeed = 220f; // pixels per second
 
-    // Grid state
-    private const int TileSize = 32;
+    private SpriteBatch _spriteBatch = null!;
 
 
-
-    public OctarineGameHost(ILoggingService logger, IInputService inputService, ILdtkMapService mapService, ILdtkMapRenderer mapRenderer)
+    public OctarineGameHost(ILoggingService logger, IInputService inputService, ISimpleMapService mapService,
+        ISimpleLevelRenderer mapRenderer)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _inputService = inputService ?? throw new ArgumentNullException(nameof(inputService));
@@ -56,6 +61,7 @@ public class OctarineGameHost : Game
     protected override void Initialize()
     {
         base.Initialize();
+
         // Start player roughly centered
         var vp = GraphicsDevice.Viewport;
         _playerPos = new Vector2((vp.Width - PlayerSize) / 2f, (vp.Height - PlayerSize) / 2f);
@@ -63,91 +69,70 @@ public class OctarineGameHost : Game
 
     protected override async void LoadContent()
     {
-        
         _spriteBatch = new SpriteBatch(GraphicsDevice);
 
         // Create a 1x1 white texture to draw colored rectangles
         _pixel = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
         _pixel.SetData(new[] { Color.White });
 
-        // Initialize LDTK renderer
+        // Initialize simple renderer
         _mapRenderer.Initialize(GraphicsDevice);
 
-        // Load LDTK map
-        var ldtkPath = Path.Combine(Content.RootDirectory, "test_level2.ldtk");
-        _logger.Debug($"Content.RootDirectory: '{Content.RootDirectory}'");
-        _logger.Debug($"Current working directory: '{Directory.GetCurrentDirectory()}'");
-        _logger.Debug($"Constructed LDTK path: '{ldtkPath}'");
-        _logger.Debug($"Full resolved LDTK path: '{Path.GetFullPath(ldtkPath)}'");
-        _logger.Debug($"LDTK file exists: {File.Exists(ldtkPath)}");
-        var project = await _mapService.LoadProjectAsync(ldtkPath);
-        if (project != null)
+        // Load Room1.ldtk using simplified system
+        var ldtkPath = Path.Combine(Content.RootDirectory, "Room1.ldtk");
+        _logger.Debug($"Loading Room1.ldtk from: {ldtkPath}");
+        _currentLevel = await _mapService.LoadLevelAsync(ldtkPath);
+
+        if (_currentLevel != null)
         {
-            await _mapRenderer.LoadTilesetsAsync(project, Content.RootDirectory);
+            await _mapRenderer.LoadTilesetsAsync(_currentLevel, Content);
+            _logger.Debug(
+                $"Level '{_currentLevel.Identifier}' loaded successfully - Size: {_currentLevel.PxWid}x{_currentLevel.PxHei}");
+        }
+        else
+        {
+            _logger.Error("Failed to load Room1.ldtk");
         }
     }
 
     protected override void Update(GameTime gameTime)
     {
         _inputService.Update(gameTime);
-        if (_inputService.IsExitPressed())
-        {
-            Exit();
-        }
+        if (_inputService.IsExitPressed()) Exit();
 
-        float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
+        var dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         var dir = _inputService.GetMovementDirection();
 
         var delta = Movement.ComputeDelta(dir, PlayerSpeed, dt);
-        _playerPos += delta;
+        var newPlayerPos = _playerPos + delta;
 
-        // Clamp within viewport
+        // Simple movement - clamp to viewport bounds
         var vp = GraphicsDevice.Viewport;
-        _playerPos.X = MathHelper.Clamp(_playerPos.X, 0, vp.Width - PlayerSize);
-        _playerPos.Y = MathHelper.Clamp(_playerPos.Y, 0, vp.Height - PlayerSize);
+        _playerPos.X = MathHelper.Clamp(newPlayerPos.X, 0, vp.Width - PlayerSize);
+        _playerPos.Y = MathHelper.Clamp(newPlayerPos.Y, 0, vp.Height - PlayerSize);
 
         base.Update(gameTime);
     }
-
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Color.Black);
 
-        _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+        // Level rendering with 4x scale
+        var scaleMatrix = Matrix.CreateScale(4.0f);
+        _spriteBatch.Begin(samplerState: SamplerState.PointClamp, transformMatrix: scaleMatrix);
 
-        // Draw LDTK map if loaded, otherwise draw fallback checker background
-        if (_mapService.IsProjectLoaded)
+        if (_currentLevel != null)
         {
-            var level = _mapService.GetLevel("Entrance");
-            if (level != null)
-            {
-                _mapRenderer.RenderLevel(level, _spriteBatch, Matrix.Identity);
-            }
-            else
-            {
-                _logger.Warn("Level 'Entrance' not found!");
-            }
-        }
-        else
-        {
-            // Fallback: Draw pink/black checker background
             var vp = GraphicsDevice.Viewport;
-            for (int y = 0; y < vp.Height; y += TileSize)
-            {
-                for (int x = 0; x < vp.Width; x += TileSize)
-                {
-                    bool isPink = (((x / TileSize) + (y / TileSize)) % 2) == 0;
-                    var color = isPink ? Color.HotPink : Color.Black;
-                    _spriteBatch.Draw(_pixel, new Rectangle(x, y, TileSize, TileSize), color);
-                }
-            }
+            var screenCenter = new Vector2(vp.Width / 2f, vp.Height / 2f) / 4.0f;
+            _mapRenderer.RenderLevelCentered(_currentLevel, _spriteBatch, screenCenter);
         }
-
-        // Draw the player as a red square
-        _spriteBatch.Draw(_pixel, new Rectangle((int)_playerPos.X, (int)_playerPos.Y, PlayerSize, PlayerSize), Color.Red);
 
         _spriteBatch.End();
 
-        base.Draw(gameTime);
+        // Player rendering at normal scale
+        _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+        _spriteBatch.Draw(_pixel, new Rectangle((int)_playerPos.X, (int)_playerPos.Y, PlayerSize, PlayerSize), Color.Red);
+        _spriteBatch.End();
     }
 }
