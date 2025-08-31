@@ -1,22 +1,44 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using OctarineCodex;
+﻿using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using OctarineCodex.Input;
 using OctarineCodex.Logging;
 using OctarineCodex.Maps;
 
-// Set up dependency injection container
-var services = new ServiceCollection();
-services.AddOctarineServices();
+namespace OctarineCodex;
 
-var serviceProvider = services.BuildServiceProvider();
+public static class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Set up dependency injection container
+        var services = new ServiceCollection();
+        services.AddOctarineServices();
 
-// Create game with injected services
-var logger = serviceProvider.GetRequiredService<ILoggingService>();
-var inputService = serviceProvider.GetRequiredService<IInputService>();
-var mapService = serviceProvider.GetRequiredService<ISimpleMapService>();
-var mapRenderer = serviceProvider.GetRequiredService<ISimpleLevelRenderer>();
-using var game = new OctarineGameHost(logger, inputService, mapService, mapRenderer);
-game.Window.AllowUserResizing = true;
-game.Run();
+        var serviceProvider = services.BuildServiceProvider();
 
-await serviceProvider.DisposeAsync();
+        // Create game with all injected services
+        var logger = serviceProvider.GetRequiredService<ILoggingService>();
+        var inputService = serviceProvider.GetRequiredService<IInputService>();
+        var worldMapService = serviceProvider.GetRequiredService<IWorldMapService>();
+        var collisionService = serviceProvider.GetRequiredService<ICollisionService>();
+        var entityService = serviceProvider.GetRequiredService<IEntityService>();
+        var worldRenderer = serviceProvider.GetRequiredService<IWorldRenderer>();
+        var simpleMapService = serviceProvider.GetRequiredService<ISimpleMapService>();
+        var simpleLevelRenderer = serviceProvider.GetRequiredService<ISimpleLevelRenderer>();
+
+        using var game = new OctarineGameHost(
+            logger,
+            inputService,
+            worldMapService,
+            collisionService,
+            entityService,
+            worldRenderer,
+            simpleMapService,
+            simpleLevelRenderer);
+
+        game.Window.AllowUserResizing = true;
+        game.Run();
+
+        await serviceProvider.DisposeAsync();
+    }
+}

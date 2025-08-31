@@ -1,17 +1,18 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using LDtk;
 
 namespace OctarineCodex.Maps;
 
 /// <summary>
-/// Simple implementation of ISimpleMapService for loading single LDtk levels.
+///     Simple implementation of ISimpleMapService for loading single LDtk levels.
 /// </summary>
-public sealed class SimpleMapService : ISimpleMapService
+public class SimpleMapService : ISimpleMapService
 {
-    private LDtkLevel? _currentLevel;
+    protected LDtkLevel? _currentLevel;
 
     public LDtkLevel? CurrentLevel => _currentLevel;
 
@@ -45,14 +46,10 @@ public sealed class SimpleMapService : ISimpleMapService
 
                     // Find the specific level or get the first one
                     if (levelIdentifier != null)
-                    {
                         _currentLevel = world.Levels.FirstOrDefault(level =>
                             string.Equals(level.Identifier, levelIdentifier, StringComparison.OrdinalIgnoreCase));
-                    }
                     else
-                    {
                         _currentLevel = world.Levels.FirstOrDefault();
-                    }
 
                     return _currentLevel;
                 }
@@ -63,19 +60,15 @@ public sealed class SimpleMapService : ISimpleMapService
                     // In legacy format, levels are accessible directly from the file
                     // Find the specific level or get the first one
                     if (levelIdentifier != null)
-                    {
                         _currentLevel = file.Levels.FirstOrDefault(level =>
                             string.Equals(level.Identifier, levelIdentifier, StringComparison.OrdinalIgnoreCase));
-                    }
                     else
-                    {
                         _currentLevel = file.Levels.FirstOrDefault();
-                    }
 
                     return _currentLevel;
                 }
             }
-            catch (LDtk.LDtkException ex) when (ex.Message.Contains("multiworld"))
+            catch (LDtkException ex) when (ex.Message.Contains("multiworld"))
             {
                 // If it fails because it's not a multiworld file, try loading without validation
                 return await LoadSingleWorldFileAsync(filePath, levelIdentifier);
@@ -101,9 +94,9 @@ public sealed class SimpleMapService : ISimpleMapService
         {
             // Load file content directly without validation
             var jsonContent = await File.ReadAllTextAsync(filePath);
-            
+
             // Use the same serializer settings as the LDtk library but without validation
-            var file = System.Text.Json.JsonSerializer.Deserialize<LDtk.LDtkFile>(jsonContent, LDtk.Constants.SerializeOptions);
+            var file = JsonSerializer.Deserialize<LDtkFile>(jsonContent, Constants.SerializeOptions);
 
             if (file == null) return null;
 
@@ -112,14 +105,10 @@ public sealed class SimpleMapService : ISimpleMapService
             {
                 // Find the specific level or get the first one
                 if (levelIdentifier != null)
-                {
                     _currentLevel = file.Levels.FirstOrDefault(level =>
                         string.Equals(level.Identifier, levelIdentifier, StringComparison.OrdinalIgnoreCase));
-                }
                 else
-                {
                     _currentLevel = file.Levels.FirstOrDefault();
-                }
 
                 return _currentLevel;
             }

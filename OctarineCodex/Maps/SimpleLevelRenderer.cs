@@ -13,7 +13,7 @@ namespace OctarineCodex.Maps;
 /// <summary>
 ///     Simple implementation of ISimpleLevelRenderer for displaying a single LDtk level centered on screen.
 /// </summary>
-public sealed class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
+public class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
 {
     private readonly Dictionary<string, Texture2D> _loadedTextures = new();
     private readonly Dictionary<int, TilesetDefinition> _tilesetDefinitions = new();
@@ -23,7 +23,10 @@ public sealed class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
     {
         foreach (var texture in _loadedTextures.Values) texture?.Dispose();
         _loadedTextures.Clear();
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
+
 
     public void Initialize(GraphicsDevice graphicsDevice)
     {
@@ -97,6 +100,11 @@ public sealed class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
         spriteBatch.Draw(pixelTexture,
             new Rectangle(levelBounds.Right - borderThickness, levelBounds.Y, borderThickness, levelBounds.Height),
             Color.White * 0.5f);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        // Cleanup
     }
 
     private void RenderLayer(LayerInstance layer, SpriteBatch spriteBatch, Vector2 levelOffset)

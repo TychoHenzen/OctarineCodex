@@ -85,3 +85,18 @@
 /processorParam:TextureFormat=Color
 /build:atlas/TopDown_by_deepnight.png
 
+#begin Room1.ldtk
+/copy:Room1.ldtk
+/importer:
+/processor:PassThroughProcessor
+
+#begin Room2.ldtk
+/copy:Room2.ldtk
+/importer:
+/processor:PassThroughProcessor
+
+#begin test_level2.ldtk
+/importer:
+/processor:PassThroughProcessor
+/copy:test_level2.ldtk
+

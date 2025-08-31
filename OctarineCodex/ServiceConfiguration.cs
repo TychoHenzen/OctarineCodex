@@ -30,6 +30,12 @@ public static class ServiceConfiguration
         services.AddSingleton<ISimpleMapService, SimpleMapService>();
         services.AddTransient<ISimpleLevelRenderer, SimpleLevelRenderer>();
 
+        // Multi-level world system services (Room2.ldtk support)
+        services.AddSingleton<IWorldMapService, WorldMapService>();
+        services.AddSingleton<ICollisionService, CollisionService>();
+        services.AddSingleton<IEntityService, EntityService>();
+        services.AddTransient<IWorldRenderer, WorldRenderer>();
+
         return services;
     }
 }
