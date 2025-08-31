@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using FluentAssertions;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;
 using OctarineCodex.Input;
@@ -23,14 +24,16 @@ public class CompositeInputServiceTests
     public void Constructor_WithNullKeyboard_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new CompositeInputService(null!, _mockController));
+        var action = () => new CompositeInputService(null!, _mockController);
+        action.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]
     public void Constructor_WithNullController_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new CompositeInputService(_mockKeyboard, null!));
+        var action = () => new CompositeInputService(_mockKeyboard, null!);
+        action.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]
@@ -60,8 +63,8 @@ public class CompositeInputServiceTests
 
         // Assert
         var expected = Vector2.Normalize(new Vector2(1f, -1f));
-        Assert.Equal(expected.X, direction.X, 3);
-        Assert.Equal(expected.Y, direction.Y, 3);
+        direction.X.Should().BeApproximately(expected.X, 0.001f);
+        direction.Y.Should().BeApproximately(expected.Y, 0.001f);
     }
 
     [Fact]
@@ -76,8 +79,8 @@ public class CompositeInputServiceTests
 
         // Assert
         var expected = Vector2.Normalize(new Vector2(0.8f, -0.6f)); // Y inverted
-        Assert.Equal(expected.X, direction.X, 3);
-        Assert.Equal(expected.Y, direction.Y, 3);
+        direction.X.Should().BeApproximately(expected.X, 0.001f);
+        direction.Y.Should().BeApproximately(expected.Y, 0.001f);
     }
 
     [Fact]
@@ -94,8 +97,8 @@ public class CompositeInputServiceTests
         // Assert
         var combined = new Vector2(-1f + 0.5f, 0f);
         var expected = Vector2.Normalize(combined);
-        Assert.Equal(expected.X, direction.X, 3);
-        Assert.Equal(expected.Y, direction.Y, 3);
+        direction.X.Should().BeApproximately(expected.X, 0.001f);
+        direction.Y.Should().BeApproximately(expected.Y, 0.001f);
     }
 
     [Fact]
@@ -108,7 +111,7 @@ public class CompositeInputServiceTests
         var result = _inputService.IsExitPressed();
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -122,7 +125,7 @@ public class CompositeInputServiceTests
         var result = _inputService.IsExitPressed();
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -137,7 +140,7 @@ public class CompositeInputServiceTests
         var result = _inputService.IsExitPressed();
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -150,7 +153,7 @@ public class CompositeInputServiceTests
         var result = _inputService.IsPrimaryActionPressed();
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -164,7 +167,7 @@ public class CompositeInputServiceTests
         var result = _inputService.IsPrimaryActionPressed();
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -177,7 +180,7 @@ public class CompositeInputServiceTests
         var result = _inputService.IsSecondaryActionPressed();
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -191,6 +194,6 @@ public class CompositeInputServiceTests
         var result = _inputService.IsSecondaryActionPressed();
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 }

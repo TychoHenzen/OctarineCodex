@@ -54,5 +54,5 @@ public interface ISimpleLevelRenderer
     /// <param name="level">The level to render</param>
     /// <param name="spriteBatch">SpriteBatch for rendering</param>
     /// <param name="screenCenter">Center point of the screen</param>
-    void RenderLevelCentered(LDtkLevel level, SpriteBatch spriteBatch, Vector2 screenCenter);
+    void RenderLevel(LDtkLevel level, SpriteBatch spriteBatch, Vector2 screenCenter);
 }

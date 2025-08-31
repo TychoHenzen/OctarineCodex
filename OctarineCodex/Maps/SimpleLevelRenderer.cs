@@ -19,6 +19,12 @@ public sealed class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
     private readonly Dictionary<int, TilesetDefinition> _tilesetDefinitions = new();
     private GraphicsDevice? _graphicsDevice;
 
+    public void Dispose()
+    {
+        foreach (var texture in _loadedTextures.Values) texture?.Dispose();
+        _loadedTextures.Clear();
+    }
+
     public void Initialize(GraphicsDevice graphicsDevice)
     {
         _graphicsDevice = graphicsDevice ?? throw new ArgumentNullException(nameof(graphicsDevice));
@@ -57,7 +63,7 @@ public sealed class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
                 }
     }
 
-    public void RenderLevelCentered(LDtkLevel level, SpriteBatch spriteBatch, Vector2 screenCenter)
+    public void RenderLevel(LDtkLevel level, SpriteBatch spriteBatch, Vector2 screenCenter)
     {
         if (_graphicsDevice == null)
             throw new InvalidOperationException("GraphicsDevice must be initialized before rendering");
@@ -65,14 +71,10 @@ public sealed class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
         if (level == null)
             return;
 
-        // Calculate position to center the level on screen
-        var levelSize = new Vector2(level.PxWid, level.PxHei);
-        var renderPosition = screenCenter - levelSize * 0.5f;
-
         // Draw level background
         var levelBounds = new Rectangle(
-            (int)renderPosition.X,
-            (int)renderPosition.Y,
+            (int)screenCenter.X,
+            (int)screenCenter.Y,
             level.PxWid,
             level.PxHei
         );
@@ -80,21 +82,18 @@ public sealed class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
         spriteBatch.Draw(pixelTexture, levelBounds, Color.DarkGray * 0.3f);
 
         // Render each layer in the level
-        foreach (var layer in level.LayerInstances) RenderLayer(layer, spriteBatch, renderPosition);
+        foreach (var layer in level.LayerInstances)
+            RenderLayer(layer, spriteBatch, screenCenter);
 
         // Draw level border for debugging
         var borderThickness = 1;
-        // Top border
         spriteBatch.Draw(pixelTexture, new Rectangle(levelBounds.X, levelBounds.Y, levelBounds.Width, borderThickness),
             Color.White * 0.5f);
-        // Bottom border
         spriteBatch.Draw(pixelTexture,
             new Rectangle(levelBounds.X, levelBounds.Bottom - borderThickness, levelBounds.Width, borderThickness),
             Color.White * 0.5f);
-        // Left border
         spriteBatch.Draw(pixelTexture, new Rectangle(levelBounds.X, levelBounds.Y, borderThickness, levelBounds.Height),
             Color.White * 0.5f);
-        // Right border
         spriteBatch.Draw(pixelTexture,
             new Rectangle(levelBounds.Right - borderThickness, levelBounds.Y, borderThickness, levelBounds.Height),
             Color.White * 0.5f);
@@ -261,11 +260,5 @@ public sealed class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
         }
 
         return _loadedTextures["__pixel__"];
-    }
-
-    public void Dispose()
-    {
-        foreach (var texture in _loadedTextures.Values) texture?.Dispose();
-        _loadedTextures.Clear();
     }
 }

@@ -16,6 +16,7 @@ var inputService = serviceProvider.GetRequiredService<IInputService>();
 var mapService = serviceProvider.GetRequiredService<ISimpleMapService>();
 var mapRenderer = serviceProvider.GetRequiredService<ISimpleLevelRenderer>();
 using var game = new OctarineGameHost(logger, inputService, mapService, mapRenderer);
+game.Window.AllowUserResizing = true;
 game.Run();
 
 await serviceProvider.DisposeAsync();

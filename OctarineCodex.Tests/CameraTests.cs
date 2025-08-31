@@ -78,9 +78,8 @@ public class CameraTests
         var maxCameraX = roomSize.X - viewportSize.X;
         camera.Position.X.Should().BeLessThanOrEqualTo(maxCameraX);
     }
-
     [Fact]
-    public void Camera2D_FollowPlayer_SmallRoom_CentersRoomInViewport()
+    public void Camera2D_FollowPlayer_SmallRoom_KeepsRoomAtOrigin()
     {
         // Arrange
         var viewportSize = new Vector2(800, 600);
@@ -88,16 +87,15 @@ public class CameraTests
         var playerPosition = new Vector2(200, 150);
         var playerSize = 32;
         var roomSize = new Vector2(400, 300); // Smaller than viewport
-        
+    
         // Act
         camera.FollowPlayer(playerPosition, playerSize, Vector2.Zero, roomSize);
-        
+    
         // Assert
-        // Room should be centered in viewport
-        var expectedCameraX = -(viewportSize.X - roomSize.X) / 2f;
-        var expectedCameraY = -(viewportSize.Y - roomSize.Y) / 2f;
-        camera.Position.X.Should().BeApproximately(expectedCameraX, 0.1f);
-        camera.Position.Y.Should().BeApproximately(expectedCameraY, 0.1f);
+        // When room is smaller than viewport, camera should stay at room origin
+        // to prevent showing areas outside the room bounds
+        camera.Position.X.Should().Be(0f);
+        camera.Position.Y.Should().Be(0f);
     }
 
     [Fact]
@@ -126,13 +124,12 @@ public class CameraTests
         float roomWidth, float roomHeight, bool expectedNearEdge)
     {
         // Arrange
-        var camera = new Camera2D(new Vector2(800, 600));
         var playerPosition = new Vector2(playerX, playerY);
         var roomSize = new Vector2(roomWidth, roomHeight);
         var edgeThreshold = 32; // One tile width
         
         // Act
-        var isNearEdge = camera.IsPlayerNearRoomEdge(playerPosition, playerSize, Vector2.Zero, roomSize, edgeThreshold);
+        var isNearEdge = Camera2D.IsPlayerNearRoomEdge(playerPosition, playerSize, Vector2.Zero, roomSize, edgeThreshold);
         
         // Assert
         isNearEdge.Should().Be(expectedNearEdge);

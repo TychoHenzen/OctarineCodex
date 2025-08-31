@@ -1,10 +1,6 @@
-﻿using System.IO;
-using System.Threading.Tasks;
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using OctarineCodex.Maps;
-using Xunit;
 
 namespace OctarineCodex.Tests.Maps;
 
@@ -41,7 +37,7 @@ public class SimpleMapSystemIntegrationTests
         var loadTilesetsAction = async () => await renderer.LoadTilesetsAsync(level, null);
         await loadTilesetsAction.Should().ThrowAsync<InvalidOperationException>();
 
-        var renderAction = () => renderer.RenderLevelCentered(level, null!, Vector2.Zero);
+        var renderAction = () => renderer.RenderLevel(level, null!, Vector2.Zero);
         renderAction.Should().Throw<InvalidOperationException>();
     }
 
@@ -61,11 +57,11 @@ public class SimpleMapSystemIntegrationTests
         level1.Should().NotBeNull();
         level2.Should().NotBeNull();
         level3.Should().NotBeNull();
-        
+
         level1!.Identifier.Should().Be("AutoLayer");
         level2!.Identifier.Should().Be("AutoLayer");
         level3!.Identifier.Should().Be("AutoLayer");
-        
+
         // Should maintain consistent state
         mapService.IsLevelLoaded.Should().BeTrue();
         mapService.CurrentLevel.Should().Be(level3); // Last loaded level
@@ -80,7 +76,7 @@ public class SimpleMapSystemIntegrationTests
         // Act & Assert - Should not throw when disposed
         var disposeAction = () => renderer.Dispose();
         disposeAction.Should().NotThrow();
-        
+
         // Should be safe to dispose multiple times
         disposeAction.Should().NotThrow();
     }
