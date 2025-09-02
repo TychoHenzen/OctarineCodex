@@ -29,13 +29,22 @@ public class CollisionService : ICollisionService
 
             _tileSize = collisionLayer._GridSize;
 
-            // Process IntGrid data
+            // Process IntGrid data - FIX: Proper coordinate calculation
             for (var i = 0; i < collisionLayer.IntGridCsv.Length; i++)
                 if (collisionLayer.IntGridCsv[i] > 0) // Non-zero means solid
                 {
-                    var tileX = level.WorldX + i % collisionLayer._CWid * _tileSize;
-                    var tileY = level.WorldY + i / collisionLayer._CWid * _tileSize;
-                    _solidTiles[new Point(tileX / _tileSize, tileY / _tileSize)] = true;
+                    var gridX = i % collisionLayer._CWid;
+                    var gridY = i / collisionLayer._CWid;
+
+                    // Convert to world pixel coordinates
+                    var worldPixelX = level.WorldX + gridX * _tileSize;
+                    var worldPixelY = level.WorldY + gridY * _tileSize;
+
+                    // Convert to grid coordinates for collision map
+                    var collisionGridX = worldPixelX / _tileSize;
+                    var collisionGridY = worldPixelY / _tileSize;
+
+                    _solidTiles[new Point(collisionGridX, collisionGridY)] = true;
                 }
         }
     }

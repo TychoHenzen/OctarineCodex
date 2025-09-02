@@ -35,6 +35,8 @@ public static class ServiceConfiguration
         services.AddSingleton<ICollisionService, CollisionService>();
         services.AddSingleton<IEntityService, EntityService>();
         services.AddTransient<IWorldRenderer, WorldRenderer>();
+        services.AddSingleton<IWorldLayerService, WorldLayerService>();
+        services.AddSingleton<ITeleportService, TeleportService>();
 
         return services;
     }

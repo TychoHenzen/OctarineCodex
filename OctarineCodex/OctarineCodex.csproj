@@ -36,9 +36,6 @@
         <PackageReference Include="Ninject" Version="4.0.0-beta.1"/>
         <PackageReference Include="System.Text.Json" Version="9.0.8"/>
     </ItemGroup>
-    <ItemGroup>
-        <Folder Include="Logs\"/>
-    </ItemGroup>
     <Target Name="RestoreDotnetTools" BeforeTargets="CollectPackageReferences">
         <Message Text="Restoring dotnet tools (this might take a while depending on your internet speed and should only happen upon building your project for the first time, or after upgrading MonoGame, or clearing your nuget cache)" Importance="High"/>
         <Exec Command="dotnet tool restore"/>
@@ -47,7 +44,16 @@
         <!-- Delete the Generated folder (ignore errors if it doesn't exist) -->
         <RemoveDir Directories="Generated"/>
 
-        <!-- Run LDtk codegen -->
-        <Exec Command="ldtkgen -i Content/Room2.ldtk -o Generated"/>
+        <!-- Create Generated folder -->
+        <MakeDir Directories="Generated"/>
+
+        <!-- Get all LDTK files -->
+        <ItemGroup>
+            <LdtkFiles Include="Content/*.ldtk"/>
+        </ItemGroup>
+
+        <!-- Run LDtk codegen for each file -->
+        <Exec Command="ldtkgen -i %(LdtkFiles.Identity) -o Generated/%(LdtkFiles.Filename) -n %(LdtkFiles.Filename)"
+              ContinueOnError="false"/>
     </Target>
 </Project>

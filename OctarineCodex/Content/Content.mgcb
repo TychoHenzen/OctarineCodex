@@ -61,6 +61,18 @@
 /processorParam:TextureFormat=Color
 /build:atlas/Inca_front_by_Kronbits-extended.png
 
+#begin atlas/NuclearBlaze_by_deepnight.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:atlas/NuclearBlaze_by_deepnight.png
+
 #begin atlas/SunnyLand_by_Ansimuz-extended.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -87,16 +99,13 @@
 
 #begin Room1.ldtk
 /copy:Room1.ldtk
-/importer:
-/processor:PassThroughProcessor
 
 #begin Room2.ldtk
 /copy:Room2.ldtk
-/importer:
-/processor:PassThroughProcessor
+
+#begin Room4.ldtk
+/copy:Room4.ldtk
 
 #begin test_level2.ldtk
-/importer:
-/processor:PassThroughProcessor
 /copy:test_level2.ldtk
 

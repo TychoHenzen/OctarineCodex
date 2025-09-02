@@ -25,6 +25,8 @@ public static class Program
         var worldRenderer = serviceProvider.GetRequiredService<IWorldRenderer>();
         var simpleMapService = serviceProvider.GetRequiredService<ISimpleMapService>();
         var simpleLevelRenderer = serviceProvider.GetRequiredService<ISimpleLevelRenderer>();
+        var worldLayerService = serviceProvider.GetRequiredService<IWorldLayerService>();
+        var teleportService = serviceProvider.GetRequiredService<ITeleportService>();
 
         using var game = new OctarineGameHost(
             logger,
@@ -34,7 +36,9 @@ public static class Program
             entityService,
             worldRenderer,
             simpleMapService,
-            simpleLevelRenderer);
+            simpleLevelRenderer,
+            worldLayerService,
+            teleportService);
 
         game.Window.AllowUserResizing = true;
         game.Run();
