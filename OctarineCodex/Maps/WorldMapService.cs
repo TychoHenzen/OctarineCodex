@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using LDtk;
@@ -21,22 +20,11 @@ public class WorldMapService : SimpleMapService, IWorldMapService
 
     public IReadOnlyList<LDtkLevel> LoadedLevels => _loadedLevels.AsReadOnly();
 
-    public async Task<IReadOnlyList<LDtkLevel>> LoadWorldAsync(string filePath)
+    public async Task<IReadOnlyList<LDtkLevel>> LoadWorldAsync(LDtkFile file)
     {
         try
         {
             _loadedLevels.Clear();
-
-            if (!File.Exists(filePath))
-            {
-                _logger.Debug($"File not found: {filePath}");
-                return _loadedLevels.AsReadOnly();
-            }
-
-            _logger.Debug($"Loading LDtk file: {filePath}");
-
-            // Use SimpleMapService logic which handles both formats
-            var file = await Task.Run(() => LDtkFile.FromFile(filePath));
 
             // Check if it's legacy format first (single world with multiple levels)
             if (file.Levels != null && file.Levels.Any())

@@ -19,14 +19,14 @@
 			"worldIid": "c9ef2d10-c640-11ed-ad34-f553e1d803f9",
 			"levelIid": "d53f9950-c640-11ed-8430-4942c04951ff",
 			"layerIid": "d53f9951-c640-11ed-8430-3f3f71a3daf1",
-			"entityIid": "9faf4260-c640-11ed-8430-2b1c51694f4d"
+			"entityIid": "b6869240-8560-11f0-b421-1b7f0f521fb1"
 		}],
 		"instancesData": [{ "iids": {
 			"worldIid": "c9ef2d10-c640-11ed-ad34-f553e1d803f9",
 			"levelIid": "d53f9950-c640-11ed-8430-4942c04951ff",
 			"layerIid": "d53f9951-c640-11ed-8430-3f3f71a3daf1",
-			"entityIid": "9faf4260-c640-11ed-8430-2b1c51694f4d"
-		}, "worldX": 280, "worldY": 168, "widPx": 16, "heiPx": 16, "fields" : {} }]
+			"entityIid": "b6869240-8560-11f0-b421-1b7f0f521fb1"
+		}, "worldX": 504, "worldY": 168, "widPx": 16, "heiPx": 16, "fields" : {} }]
 	}],
 	"worldLayout": null,
 	"worldGridWidth": null,
@@ -38,7 +38,7 @@
 	"defaultGridSize": 16,
 	"defaultEntityWidth": 16,
 	"defaultEntityHeight": 16,
-	"bgColor": "#141522",
+	"bgColor": "#0D0D13",
 	"defaultLevelBgColor": "#404255",
 	"minifyJson": false,
 	"externalLevels": false,
@@ -1030,7 +1030,7 @@
 			]
 		},
 		{
-			"identifier": "Item",
+			"identifier": "ItemEntity",
 			"uid": 63,
 			"tags": ["actor"],
 			"exportToToc": false,
@@ -1287,9 +1287,9 @@
 		{
 			"__cWid": 11,
 			"__cHei": 11,
-			"identifier": "TopDown_by_deepnight2",
+			"identifier": "TopDown_by_deepnight",
 			"uid": 1,
-			"relPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+			"relPath": "atlas/TopDown_by_deepnight.png",
 			"embedAtlas": null,
 			"pxWid": 176,
 			"pxHei": 176,
@@ -1452,7 +1452,7 @@
 							"__worldY": 144
 						},
 						{
-							"__identifier": "Item",
+							"__identifier": "ItemEntity",
 							"__grid": [18,3],
 							"__pivot": [0.5,0.5],
 							"__tags": ["actor"],
@@ -1471,7 +1471,7 @@
 							"__worldY": 56
 						},
 						{
-							"__identifier": "Item",
+							"__identifier": "ItemEntity",
 							"__grid": [3,4],
 							"__pivot": [0.5,0.5],
 							"__tags": ["actor"],
@@ -1531,21 +1531,21 @@
 						},
 						{
 							"__identifier": "Player",
-							"__grid": [1,10],
+							"__grid": [15,10],
 							"__pivot": [0.5,0.5],
 							"__tags": ["actor"],
 							"__tile": { "tilesetUid": 104, "x": 0, "y": 240, "w": 16, "h": 16 },
 							"__smartColor": "#03CB7C",
-							"iid": "9faf4260-c640-11ed-8430-2b1c51694f4d",
+							"iid": "b6869240-8560-11f0-b421-1b7f0f521fb1",
 							"width": 16,
 							"height": 16,
 							"defUid": 59,
-							"px": [24,168],
+							"px": [248,168],
 							"fieldInstances": [
 								{ "__identifier": "life", "__type": "Int", "__value": 100, "__tile": null, "defUid": 61, "realEditorValues": [] },
 								{ "__identifier": "ammo", "__type": "Int", "__value": 10, "__tile": null, "defUid": 60, "realEditorValues": [] }
 							],
-							"__worldX": 280,
+							"__worldX": 504,
 							"__worldY": 168
 						}
 					]
@@ -1560,7 +1560,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": -16,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+					"__tilesetRelPath": "atlas/TopDown_by_deepnight.png",
 					"iid": "52531980-c640-11ed-8430-8977c9e5dbc8",
 					"levelId": 109,
 					"layerDefUid": 115,
@@ -1828,7 +1828,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+					"__tilesetRelPath": "atlas/TopDown_by_deepnight.png",
 					"iid": "18d5d850-c640-11ed-8430-c960ec4ac232",
 					"levelId": 109,
 					"layerDefUid": 110,
@@ -2406,7 +2406,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+					"__tilesetRelPath": "atlas/TopDown_by_deepnight.png",
 					"iid": "a7c798c0-c640-11ed-8430-67d85d757738",
 					"levelId": 109,
 					"layerDefUid": 150,
@@ -2642,7 +2642,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+					"__tilesetRelPath": "atlas/TopDown_by_deepnight.png",
 					"iid": "4a384030-c640-11ed-8430-e721d13dbfd7",
 					"levelId": 109,
 					"layerDefUid": 128,
@@ -3035,7 +3035,7 @@
 							"__worldY": 96
 						},
 						{
-							"__identifier": "Item",
+							"__identifier": "ItemEntity",
 							"__grid": [5,5],
 							"__pivot": [0.5,0.5],
 							"__tags": ["actor"],
@@ -3054,7 +3054,7 @@
 							"__worldY": 88
 						},
 						{
-							"__identifier": "Item",
+							"__identifier": "ItemEntity",
 							"__grid": [8,6],
 							"__pivot": [0.5,0.5],
 							"__tags": ["actor"],
@@ -3073,7 +3073,7 @@
 							"__worldY": 104
 						},
 						{
-							"__identifier": "Item",
+							"__identifier": "ItemEntity",
 							"__grid": [4,8],
 							"__pivot": [0.5,0.5],
 							"__tags": ["actor"],
@@ -3092,7 +3092,7 @@
 							"__worldY": 136
 						},
 						{
-							"__identifier": "Item",
+							"__identifier": "ItemEntity",
 							"__grid": [12,12],
 							"__pivot": [0.5,0.5],
 							"__tags": ["actor"],
@@ -3151,7 +3151,7 @@
 							"__worldY": 168
 						},
 						{
-							"__identifier": "Item",
+							"__identifier": "ItemEntity",
 							"__grid": [6,2],
 							"__pivot": [0.5,0.5],
 							"__tags": ["actor"],
@@ -3181,7 +3181,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": -16,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+					"__tilesetRelPath": "atlas/TopDown_by_deepnight.png",
 					"iid": "5b1771e2-c640-11ed-8430-399f59e36a14",
 					"levelId": 145,
 					"layerDefUid": 115,
@@ -3363,7 +3363,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+					"__tilesetRelPath": "atlas/TopDown_by_deepnight.png",
 					"iid": "5b1771e3-c640-11ed-8430-25e9a7dd4a93",
 					"levelId": 145,
 					"layerDefUid": 110,
@@ -3736,7 +3736,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+					"__tilesetRelPath": "atlas/TopDown_by_deepnight.png",
 					"iid": "a7c798c1-c640-11ed-8430-4785d2a0d830",
 					"levelId": 145,
 					"layerDefUid": 150,
@@ -3864,7 +3864,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+					"__tilesetRelPath": "atlas/TopDown_by_deepnight.png",
 					"iid": "5b1771e4-c640-11ed-8430-41210b05317b",
 					"levelId": 145,
 					"layerDefUid": 128,
@@ -4114,7 +4114,7 @@
 							"__worldY": 128
 						},
 						{
-							"__identifier": "Item",
+							"__identifier": "ItemEntity",
 							"__grid": [9,5],
 							"__pivot": [0.5,0.5],
 							"__tags": ["actor"],
@@ -4208,7 +4208,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": -16,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+					"__tilesetRelPath": "atlas/TopDown_by_deepnight.png",
 					"iid": "e06b8662-c640-11ed-8430-db156434beef",
 					"levelId": 147,
 					"layerDefUid": 115,
@@ -4339,7 +4339,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+					"__tilesetRelPath": "atlas/TopDown_by_deepnight.png",
 					"iid": "e06b8663-c640-11ed-8430-010f49badd76",
 					"levelId": 147,
 					"layerDefUid": 110,
@@ -4618,7 +4618,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+					"__tilesetRelPath": "atlas/TopDown_by_deepnight.png",
 					"iid": "a7c7bfd0-c640-11ed-8430-8b46b0bf42d7",
 					"levelId": 147,
 					"layerDefUid": 150,
@@ -4848,7 +4848,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "../../../../AppData/Local/Programs/ldtk/extraFiles/samples/atlas/TopDown_by_deepnight.png",
+					"__tilesetRelPath": "atlas/TopDown_by_deepnight.png",
 					"iid": "e06b8664-c640-11ed-8430-29483dfe75a7",
 					"levelId": 147,
 					"layerDefUid": 128,

@@ -14,11 +14,11 @@
 	"nextUid": 112,
 	"identifierStyle": "Capitalize",
 	"toc": [],
-	"worldLayout": "LinearHorizontal",
-	"worldGridWidth": 128,
-	"worldGridHeight": 128,
-	"defaultLevelWidth": 256,
-	"defaultLevelHeight": 256,
+	"worldLayout": null,
+	"worldGridWidth": null,
+	"worldGridHeight": null,
+	"defaultLevelWidth": null,
+	"defaultLevelHeight": null,
 	"defaultPivotX": 0,
 	"defaultPivotY": 0,
 	"defaultGridSize": 8,
@@ -39,7 +39,7 @@
 	"levelNamePattern": "%world_Level_%idx",
 	"tutorialDesc": "IntGrid layers can paint tiles automatically using simple RULE SETS.\n\n - Press [SHIFT + R] to toggle auto-layer rendering\n - Click on the RULES button on the left to see/edit rules.",
 	"customCommands": [],
-	"flags": [ "ExportOldTableOfContentData", "UseMultilinesType" ],
+	"flags": [ "ExportOldTableOfContentData", "MultiWorlds", "UseMultilinesType" ],
 	"defs": { "layers": [
 		{
 			"__type": "IntGrid",
@@ -534,7 +534,8 @@
 			}
 		}
 	], "enums": [], "externalEnums": [], "levelFields": [] },
-	"levels": [
+	"levels": [],
+	"worlds": [{ "iid": "c914f9b0-c640-11ed-ad34-3371cda0821c", "identifier": "World", "defaultLevelWidth": 256, "defaultLevelHeight": 256, "worldGridWidth": 128, "worldGridHeight": 128, "worldLayout": "LinearHorizontal", "levels": [
 		{
 			"identifier": "AutoLayer",
 			"iid": "a2a50ff0-66b0-11ec-9cd7-c721746049b9",
@@ -1676,7 +1677,6 @@
 			],
 			"__neighbours": []
 		}
-	],
-	"worlds": [],
+	] }],
 	"dummyWorldIid": "c914f9b0-c640-11ed-ad34-3371cda0821c"
 }

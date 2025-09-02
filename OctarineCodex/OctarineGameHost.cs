@@ -81,7 +81,7 @@ public class OctarineGameHost : Game
         base.Initialize();
 
         // Initialize camera with FIXED viewport size instead of dynamic window size
-        var worldViewportSize = new Vector2(FixedWidth / WorldRenderScale, FixedHeight / WorldRenderScale);
+        var worldViewportSize = new Vector2(FixedWidth, FixedHeight) / WorldRenderScale;
         _camera = new Camera2D(worldViewportSize);
 
         _logger.Debug($"Window size: {GraphicsDevice.Viewport.Width}x{GraphicsDevice.Viewport.Height}");
@@ -121,12 +121,14 @@ public class OctarineGameHost : Game
         _simpleLevelRenderer.Initialize(GraphicsDevice);
 
         // Try Room2.ldtk first (multi-level support)
-        var room2Path = Path.GetFullPath(Path.Combine(Content.RootDirectory, "Room2.ldtk"));
+        var room2Path = Path.Combine(Content.RootDirectory, "Room4.ldtk");
         _logger.Debug($"Attempting to load Room2.ldtk from: {room2Path}");
         _logger.Debug($"File exists: {File.Exists(room2Path)}");
 
+        var file = await Task.Run(() => LDtkFile.FromFile(room2Path));
+        _worldRenderer.SetLDtkContext(file);
 
-        _loadedLevels = await _worldMapService.LoadWorldAsync(room2Path);
+        _loadedLevels = await _worldMapService.LoadWorldAsync(file);
 
         if (_loadedLevels.Any())
         {
@@ -150,7 +152,7 @@ public class OctarineGameHost : Game
         _entityService.InitializeEntities(_loadedLevels);
 
         // Load tilesets for all levels
-        await _worldRenderer.LoadTilesetsForWorldAsync(_loadedLevels, Content);
+        await _worldRenderer.LoadTilesetsAsync(Content);
 
         // Find player spawn point
         var spawnPosition = _entityService.GetPlayerSpawnPoint();
@@ -183,11 +185,16 @@ public class OctarineGameHost : Game
     {
         var room1Path = Path.Combine(Content.RootDirectory, "Room1.ldtk");
         _logger.Debug($"Loading Room1.ldtk from: {room1Path}");
-        _currentLevel = await _simpleMapService.LoadLevelAsync(room1Path);
+
+        var file = await Task.Run(() => LDtkFile.FromFile(room1Path));
+
+        _simpleLevelRenderer.SetLDtkContext(file);
+
+        _currentLevel = await _simpleMapService.LoadLevelAsync(file);
 
         if (_currentLevel != null)
         {
-            await _simpleLevelRenderer.LoadTilesetsAsync(_currentLevel, Content);
+            await _simpleLevelRenderer.LoadTilesetsAsync(Content);
 
             var spawnPosition = FindPlayerSpawnPoint(_currentLevel);
             _player = new Player(spawnPosition);
@@ -282,6 +289,7 @@ public class OctarineGameHost : Game
         if (_player != null)
         {
             var worldMatrix = _camera.GetTransformMatrix() * Matrix.CreateScale(WorldRenderScale);
+
             _spriteBatch.Begin(samplerState: SamplerState.PointClamp, transformMatrix: worldMatrix);
 
             if (_loadedLevels.Any())

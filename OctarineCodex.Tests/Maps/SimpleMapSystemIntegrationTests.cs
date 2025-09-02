@@ -11,7 +11,7 @@ public class SimpleMapSystemIntegrationTests
     {
         // Arrange
         var mapService = new SimpleMapService();
-        var renderer = new SimpleLevelRenderer();
+        var renderer = new SimpleLevelRenderer(null);
         var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
 
         // Act - Load level
@@ -34,7 +34,7 @@ public class SimpleMapSystemIntegrationTests
         var initializeAction = () => renderer.Initialize(null!);
         initializeAction.Should().Throw<ArgumentNullException>();
 
-        var loadTilesetsAction = async () => await renderer.LoadTilesetsAsync(level, null);
+        var loadTilesetsAction = async () => await renderer.LoadTilesetsAsync(null);
         await loadTilesetsAction.Should().ThrowAsync<InvalidOperationException>();
 
         var renderAction = () => renderer.RenderLevel(level, null!, Vector2.Zero);
@@ -71,7 +71,7 @@ public class SimpleMapSystemIntegrationTests
     public void SimpleLevelRenderer_ShouldImplementIDisposable()
     {
         // Arrange
-        var renderer = new SimpleLevelRenderer();
+        var renderer = new SimpleLevelRenderer(null);
 
         // Act & Assert - Should not throw when disposed
         var disposeAction = () => renderer.Dispose();

@@ -20,7 +20,7 @@ public interface IWorldMapService : ISimpleMapService
     /// </summary>
     /// <param name="filePath">Path to the LDtk file</param>
     /// <returns>List of loaded levels or empty list if loading failed</returns>
-    Task<IReadOnlyList<LDtkLevel>> LoadWorldAsync(string filePath);
+    Task<IReadOnlyList<LDtkLevel>> LoadWorldAsync(LDtkFile file);
 
     /// <summary>
     ///     Gets the level containing the specified world position.
