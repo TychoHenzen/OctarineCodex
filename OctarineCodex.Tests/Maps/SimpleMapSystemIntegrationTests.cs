@@ -1,77 +1,103 @@
-﻿using FluentAssertions;
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
+using FluentAssertions;
+using LDtk;
 using Microsoft.Xna.Framework;
+using OctarineCodex.Logging;
 using OctarineCodex.Maps;
+using Xunit;
 
 namespace OctarineCodex.Tests.Maps;
 
-public class SimpleMapSystemIntegrationTests
+/// <summary>
+/// Integration tests for the unified map system, replacing the old SimpleMapSystemIntegrationTests.
+/// Tests the interaction between MapService and LevelRenderer.
+/// </summary>
+public class MapSystemIntegrationTests
 {
+    private readonly ILoggingService _logger;
+
+    public MapSystemIntegrationTests()
+    {
+        _logger = new LoggingService();
+    }
+
     [Fact]
-    public async Task SimpleMapSystem_ShouldLoadAndRenderRoom1Successfully()
+    public async Task MapSystem_ShouldLoadAndConfigureRoom1Successfully()
     {
         // Arrange
-        var mapService = new SimpleMapService();
-        var renderer = new SimpleLevelRenderer(null);
+        var mapService = new MapService(_logger);
+        var renderer = new LevelRenderer(_logger);
         var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
 
         // Act - Load level
-        var level = await mapService.LoadLevelAsync(filePath);
+        var file = await Task.Run(() => LDtkFile.FromFile(filePath));
+        var options = new MapLoadOptions { LoadAllLevels = false };
+        var success = await mapService.LoadAsync(file, options);
 
         // Assert - Level loading
+        success.Should().BeTrue();
+        mapService.IsLoaded.Should().BeTrue();
+        mapService.CurrentLevels.Should().HaveCount(1);
+        
+        var level = mapService.CurrentLevels[0];
         level.Should().NotBeNull();
-        level!.Identifier.Should().Be("AutoLayer");
+        level.Identifier.Should().Be("AutoLayer");
         level.PxWid.Should().Be(296);
         level.PxHei.Should().Be(208);
-        mapService.IsLevelLoaded.Should().BeTrue();
-        mapService.CurrentLevel.Should().Be(level);
 
-        // Note: We can't easily test the renderer without a real GraphicsDevice
-        // The renderer initialization and rendering would require a MonoGame test framework
-        // For now, we verify that the renderer can be created and configured
+        // Test renderer configuration
         renderer.Should().NotBeNull();
-
+        
         // Verify that renderer methods exist and can be called (without GraphicsDevice they'll throw)
         var initializeAction = () => renderer.Initialize(null!);
         initializeAction.Should().Throw<ArgumentNullException>();
 
+        var setContextAction = () => renderer.SetLDtkContext(file);
+        setContextAction.Should().NotThrow();
+
         var loadTilesetsAction = async () => await renderer.LoadTilesetsAsync(null);
         await loadTilesetsAction.Should().ThrowAsync<InvalidOperationException>();
 
-        var renderAction = () => renderer.RenderLevel(level, null!, Vector2.Zero);
-        renderAction.Should().Throw<InvalidOperationException>();
+        // Verify rendering methods exist
+        var renderBeforeAction = () => renderer.RenderLevelsBeforePlayer(mapService.CurrentLevels, null!, null!);
+        renderBeforeAction.Should().NotThrow<ArgumentNullException>();
+
+        var renderAfterAction = () => renderer.RenderLevelsAfterPlayer(mapService.CurrentLevels, null!, null!);
+        renderAfterAction.Should().NotThrow<ArgumentNullException>();
     }
 
     [Fact]
-    public async Task SimpleMapService_ShouldHandleMultipleLoads()
+    public async Task MapService_ShouldHandleMultipleLoads()
     {
         // Arrange
-        var mapService = new SimpleMapService();
+        var mapService = new MapService(_logger);
         var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
 
-        // Act - Load same level multiple times
-        var level1 = await mapService.LoadLevelAsync(filePath);
-        var level2 = await mapService.LoadLevelAsync(filePath);
-        var level3 = await mapService.LoadLevelAsync(filePath, "AutoLayer");
+        // Act - Load same level multiple times with different options
+        var file = await Task.Run(() => LDtkFile.FromFile(filePath));
+        
+        var success1 = await mapService.LoadAsync(file, new MapLoadOptions { LoadAllLevels = false });
+        var success2 = await mapService.LoadAsync(file, new MapLoadOptions { LoadAllLevels = true });
+        var success3 = await mapService.LoadAsync(file, new MapLoadOptions { SpecificLevelIdentifier = "AutoLayer" });
 
         // Assert
-        level1.Should().NotBeNull();
-        level2.Should().NotBeNull();
-        level3.Should().NotBeNull();
+        success1.Should().BeTrue();
+        success2.Should().BeTrue();
+        success3.Should().BeTrue();
 
-        level1!.Identifier.Should().Be("AutoLayer");
-        level2!.Identifier.Should().Be("AutoLayer");
-        level3!.Identifier.Should().Be("AutoLayer");
-
-        // Should maintain consistent state
-        mapService.IsLevelLoaded.Should().BeTrue();
-        mapService.CurrentLevel.Should().Be(level3); // Last loaded level
+        // Should maintain consistent state (last load overwrites)
+        mapService.IsLoaded.Should().BeTrue();
+        mapService.CurrentLevels.Should().NotBeEmpty();
+        mapService.CurrentLevels[0].Identifier.Should().Be("AutoLayer");
     }
 
     [Fact]
-    public void SimpleLevelRenderer_ShouldImplementIDisposable()
+    public void LevelRenderer_ShouldImplementIDisposable()
     {
         // Arrange
-        var renderer = new SimpleLevelRenderer(null);
+        var renderer = new LevelRenderer(_logger);
 
         // Act & Assert - Should not throw when disposed
         var disposeAction = () => renderer.Dispose();
@@ -79,5 +105,42 @@ public class SimpleMapSystemIntegrationTests
 
         // Should be safe to dispose multiple times
         disposeAction.Should().NotThrow();
+    }
+
+    [Fact]
+    public async Task MapService_GetWorldBounds_ShouldCalculateCorrectBounds()
+    {
+        // Arrange
+        var mapService = new MapService(_logger);
+        var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
+        var file = await Task.Run(() => LDtkFile.FromFile(filePath));
+
+        // Act
+        var success = await mapService.LoadAsync(file);
+        var bounds = mapService.GetWorldBounds();
+
+        // Assert
+        success.Should().BeTrue();
+        bounds.Width.Should().BeGreaterThan(0);
+        bounds.Height.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task MapService_GetLevelAt_ShouldReturnCorrectLevel()
+    {
+        // Arrange
+        var mapService = new MapService(_logger);
+        var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
+        var file = await Task.Run(() => LDtkFile.FromFile(filePath));
+
+        // Act
+        var success = await mapService.LoadAsync(file);
+        var centerPoint = new Vector2(148, 104); // Roughly center of 296x208 level
+        var level = mapService.GetLevelAt(centerPoint);
+
+        // Assert
+        success.Should().BeTrue();
+        level.Should().NotBeNull();
+        level!.Identifier.Should().Be("AutoLayer");
     }
 }

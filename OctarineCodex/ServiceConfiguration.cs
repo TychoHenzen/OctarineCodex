@@ -26,15 +26,12 @@ public static class ServiceConfiguration
         services.AddSingleton<IControllerInputProvider, DesktopControllerInputProvider>();
         services.AddSingleton<IInputService, CompositeInputService>();
 
-        // Simple map system services (single level rendering)
-        services.AddSingleton<ISimpleMapService, SimpleMapService>();
-        services.AddTransient<ISimpleLevelRenderer, SimpleLevelRenderer>();
 
-        // Multi-level world system services (Room2.ldtk support)
-        services.AddSingleton<IWorldMapService, WorldMapService>();
+        services.AddSingleton<IMapService, MapService>();
+        services.AddTransient<ILevelRenderer, LevelRenderer>();
+
         services.AddSingleton<ICollisionService, CollisionService>();
         services.AddSingleton<IEntityService, EntityService>();
-        services.AddTransient<IWorldRenderer, WorldRenderer>();
         services.AddSingleton<IWorldLayerService, WorldLayerService>();
         services.AddSingleton<ITeleportService, TeleportService>();
 

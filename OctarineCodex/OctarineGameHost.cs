@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,6 +8,7 @@ using Microsoft.Xna.Framework.Graphics;
 using OctarineCodex.Input;
 using OctarineCodex.Logging;
 using OctarineCodex.Maps;
+using OctarineCodex.Player;
 
 namespace OctarineCodex;
 
@@ -20,30 +20,22 @@ public class OctarineGameHost : Game
     // Fixed resolution constants
     private const int FixedWidth = 640;
     private const int FixedHeight = 480;
+
+    // Services - now unified
     private readonly ICollisionService _collisionService;
     private readonly IEntityService _entityService;
-
-    // Graphics
     private readonly GraphicsDeviceManager _graphics;
-
-    // Services
     private readonly IInputService _inputService;
+    private readonly ILevelRenderer _levelRenderer;
     private readonly ILoggingService _logger;
-    private readonly ISimpleLevelRenderer _simpleLevelRenderer;
-
-    // Fallback services for Room1.ldtk compatibility
-    private readonly ISimpleMapService _simpleMapService;
+    private readonly IMapService _mapService;
     private readonly ITeleportService _teleportService;
     private readonly IWorldLayerService _worldLayerService;
-    private readonly IWorldMapService _worldMapService;
-    private readonly IWorldRenderer _worldRenderer;
 
     // Game state
     private Camera2D _camera = null!;
-    private LDtkLevel? _currentLevel;
-    private IReadOnlyList<LDtkLevel> _loadedLevels = [];
     private Texture2D _pixel = null!;
-    private Player _player = null!;
+    private PlayerControl _player = null!;
 
     // Rendering system
     private RenderTarget2D _renderTarget = null!;
@@ -52,26 +44,21 @@ public class OctarineGameHost : Game
     public OctarineGameHost(
         ILoggingService logger,
         IInputService inputService,
-        IWorldMapService worldMapService,
+        IMapService mapService,
+        ILevelRenderer levelRenderer,
         ICollisionService collisionService,
         IEntityService entityService,
-        IWorldRenderer worldRenderer,
-        ISimpleMapService simpleMapService,
-        ISimpleLevelRenderer simpleLevelRenderer,
         IWorldLayerService worldLayerService,
         ITeleportService teleportService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _inputService = inputService ?? throw new ArgumentNullException(nameof(inputService));
-        _worldMapService = worldMapService ?? throw new ArgumentNullException(nameof(worldMapService));
+        _mapService = mapService ?? throw new ArgumentNullException(nameof(mapService));
+        _levelRenderer = levelRenderer ?? throw new ArgumentNullException(nameof(levelRenderer));
         _collisionService = collisionService ?? throw new ArgumentNullException(nameof(collisionService));
         _entityService = entityService ?? throw new ArgumentNullException(nameof(entityService));
-        _worldRenderer = worldRenderer ?? throw new ArgumentNullException(nameof(worldRenderer));
-        _simpleMapService = simpleMapService ?? throw new ArgumentNullException(nameof(simpleMapService));
-        _simpleLevelRenderer = simpleLevelRenderer ?? throw new ArgumentNullException(nameof(simpleLevelRenderer));
         _worldLayerService = worldLayerService ?? throw new ArgumentNullException(nameof(worldLayerService));
         _teleportService = teleportService ?? throw new ArgumentNullException(nameof(teleportService));
-
 
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
@@ -94,7 +81,7 @@ public class OctarineGameHost : Game
         _logger.Debug($"Window size: {GraphicsDevice.Viewport.Width}x{GraphicsDevice.Viewport.Height}");
         _logger.Debug($"Fixed resolution: {FixedWidth}x{FixedHeight}");
         _logger.Debug($"World viewport (camera sees): {worldViewportSize}");
-        _logger.Debug($"Player size: {Player.Size}x{Player.Size}");
+        _logger.Debug($"Player size: {PlayerControl.Size}x{PlayerControl.Size}");
     }
 
     private Rectangle CalculateDestinationRectangle()
@@ -125,31 +112,39 @@ public class OctarineGameHost : Game
             _pixel = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
             _pixel.SetData(new[] { Color.White });
 
-            // Initialize renderers
-            _worldRenderer.Initialize(GraphicsDevice);
-            _simpleLevelRenderer.Initialize(GraphicsDevice);
+            // Initialize unified renderer
+            _levelRenderer.Initialize(GraphicsDevice);
 
-            // Try Room2.ldtk first (multi-level support)
-            var room2Path = Path.Combine(Content.RootDirectory, "test_level2.ldtk");
-            _logger.Debug($"Attempting to load Room2.ldtk from: {room2Path}");
-            _logger.Debug($"File exists: {File.Exists(room2Path)}");
-
-            var file = await Task.Run(() => LDtkFile.FromFile(room2Path));
-            _worldRenderer.SetLDtkContext(file);
-
-            _loadedLevels = await _worldMapService.LoadWorldAsync(file);
-
-            if (_loadedLevels.Any())
+            // Try to load primary level file (multi-level support)
+            var primaryFile = await TryLoadLdtkFile("Room2.ldtk");
+            if (primaryFile != null)
             {
-                _logger.Debug($"Room2.ldtk loaded successfully with {_loadedLevels.Count} levels");
-                await LoadMultiLevelWorld();
+                _logger.Debug("Attempting to load test_level2.ldtk (multi-level)");
+                if (await _mapService.LoadAsync(primaryFile))
+                {
+                    _logger.Debug(
+                        $"Successfully loaded {_mapService.CurrentLevels.Count} levels from test_level2.ldtk");
+                    await InitializeLoadedWorld();
+                    return;
+                }
             }
-            else
+
+            // Fallback to single level file
+            _logger.Info("test_level2.ldtk not available, falling back to Room1.ldtk");
+            var fallbackFile = await TryLoadLdtkFile("Room1.ldtk");
+            if (fallbackFile != null)
             {
-                // Fallback to Room1.ldtk (single level)
-                _logger.Info("Room2.ldtk not found, falling back to Room1.ldtk");
-                await LoadSingleLevel();
+                // Load as single level (don't load all levels if it's a multi-level file)
+                var singleLevelOptions = new MapLoadOptions { LoadAllLevels = false };
+                if (await _mapService.LoadAsync(fallbackFile, singleLevelOptions))
+                {
+                    _logger.Debug("Successfully loaded single level from Room1.ldtk");
+                    await InitializeLoadedWorld();
+                    return;
+                }
             }
+
+            _logger.Error("Failed to load any level files");
         }
         catch (Exception e)
         {
@@ -157,51 +152,143 @@ public class OctarineGameHost : Game
         }
     }
 
-
-    private async Task LoadMultiLevelWorld()
+    private async Task<LDtkFile?> TryLoadLdtkFile(string fileName)
     {
-        // Initialize world layer system
-        _worldLayerService.InitializeLevels(_loadedLevels);
+        try
+        {
+            var filePath = Path.Combine(Content.RootDirectory, fileName);
+            _logger.Debug($"Attempting to load {fileName} from: {filePath}");
+            _logger.Debug($"File exists: {File.Exists(filePath)}");
 
-        // Initialize entity system with all levels but don't load entities yet
-        _entityService.InitializeEntities(_loadedLevels);
+            if (!File.Exists(filePath))
+                return null;
 
-        // Initialize collision and entities for current layer
+            return await Task.Run(() => LDtkFile.FromFile(filePath));
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Failed to load {fileName}: {ex.Message}");
+            return null;
+        }
+    }
+
+    private async Task InitializeLoadedWorld()
+    {
+        if (!_mapService.IsLoaded)
+        {
+            _logger.Error("Cannot initialize world - no levels loaded");
+            return;
+        }
+
+        // Set LDtk context and load tilesets
+        _levelRenderer.SetLDtkContext(_mapService.LoadedFile); // All levels share same project
+        await _levelRenderer.LoadTilesetsAsync(Content);
+
+        // Initialize world systems with all loaded levels
+        _worldLayerService.InitializeLevels(_mapService.CurrentLevels);
+        _entityService.InitializeEntities(_mapService.CurrentLevels);
+
+        // Initialize systems for current layer
         var currentLayerLevels = _worldLayerService.GetCurrentLayerLevels();
         _collisionService.InitializeCollision(currentLayerLevels);
         _entityService.UpdateEntitiesForCurrentLayer(currentLayerLevels);
-
-        // Initialize teleportation system for current layer
         _teleportService.InitializeTeleports();
 
-        // Load tilesets for all levels
-        await _worldRenderer.LoadTilesetsAsync(Content);
+        // Find player spawn point
+        var spawnPosition = FindPlayerSpawn();
+        if (!spawnPosition.HasValue) spawnPosition = CalculateDefaultSpawn();
 
-        // Find player spawn point from current layer
-        var spawnPosition = _entityService.GetPlayerSpawnPoint();
-        if (!spawnPosition.HasValue)
-        {
-            // Fallback to first level center in current layer
-            var firstLevel = currentLayerLevels.FirstOrDefault();
-            if (firstLevel != null)
-                spawnPosition = new Vector2(
-                    firstLevel.WorldX + firstLevel.PxWid / 2f,
-                    firstLevel.WorldY + firstLevel.PxHei / 2f
-                );
-        }
+        _player = new PlayerControl(spawnPosition.Value);
 
-        _player = new Player(spawnPosition.Value);
-
-        // Calculate world bounds for current layer
+        // Set up camera bounds
         UpdateCameraBounds();
 
-        _logger.Debug($"Player spawn: {spawnPosition}");
+        _logger.Debug($"World initialized - Player spawn: {spawnPosition}");
+        _logger.Debug($"World bounds: {_mapService.GetWorldBounds()}");
+    }
+
+    private Vector2? FindPlayerSpawn()
+    {
+        // Try entity service first (works for multi-level worlds with entities)
+        var entitySpawn = _entityService.GetPlayerSpawnPoint();
+        if (entitySpawn.HasValue)
+        {
+            _logger.Debug($"Found player spawn from entity service: {entitySpawn}");
+            return entitySpawn;
+        }
+
+        // Fallback to manual search in current layer levels
+        var currentLevels = _worldLayerService.GetCurrentLayerLevels();
+        foreach (var level in currentLevels)
+        {
+            var levelSpawn = FindPlayerSpawnInLevel(level);
+            if (levelSpawn.HasValue)
+            {
+                _logger.Debug($"Found player spawn in level {level.Identifier}: {levelSpawn}");
+                return levelSpawn;
+            }
+        }
+
+        return null;
+    }
+
+    private Vector2? FindPlayerSpawnInLevel(LDtkLevel level)
+    {
+        if (level.LayerInstances == null)
+            return null;
+
+        foreach (var layer in level.LayerInstances)
+            if (layer._Type == LayerType.Entities)
+            {
+                var playerEntity = layer.EntityInstances
+                    .FirstOrDefault(e => e._Identifier.Equals("Player", StringComparison.OrdinalIgnoreCase) ||
+                                         e._Identifier.Equals("PlayerSpawn", StringComparison.OrdinalIgnoreCase));
+
+                if (playerEntity != null)
+                {
+                    var spawnPos = new Vector2(level.WorldX + playerEntity.Px.X, level.WorldY + playerEntity.Px.Y);
+                    return ClampToWorldBounds(spawnPos);
+                }
+            }
+
+        return null;
+    }
+
+    private Vector2 CalculateDefaultSpawn()
+    {
+        // Use center of first level in current layer as fallback
+        var currentLevels = _worldLayerService.GetCurrentLayerLevels();
+        var firstLevel = currentLevels.FirstOrDefault();
+
+        Vector2 centerPos;
+        if (firstLevel != null)
+            centerPos = new Vector2(
+                firstLevel.WorldX + firstLevel.PxWid / 2f - PlayerControl.Size / 2f,
+                firstLevel.WorldY + firstLevel.PxHei / 2f - PlayerControl.Size / 2f
+            );
+        else
+            // Ultimate fallback - origin
+            centerPos = Vector2.Zero;
+
+        var clampedPos = ClampToWorldBounds(centerPos);
+        _logger.Debug($"Using default spawn position: {clampedPos}");
+        return clampedPos;
+    }
+
+    private Vector2 ClampToWorldBounds(Vector2 position)
+    {
+        var bounds = _mapService.GetWorldBounds();
+        return new Vector2(
+            MathHelper.Clamp(position.X, bounds.X, bounds.X + bounds.Width - PlayerControl.Size),
+            MathHelper.Clamp(position.Y, bounds.Y, bounds.Y + bounds.Height - PlayerControl.Size)
+        );
     }
 
     private void UpdateCameraBounds()
     {
         var currentLayerLevels = _worldLayerService.GetCurrentLayerLevels();
-        if (!currentLayerLevels.Any()) return;
+        if (!currentLayerLevels.Any())
+            return;
 
         var minX = currentLayerLevels.Min(l => l.WorldX);
         var minY = currentLayerLevels.Min(l => l.WorldY);
@@ -212,112 +299,74 @@ public class OctarineGameHost : Game
         _camera.FollowPlayer(_player, new Vector2(minX, minY), worldSize);
     }
 
-
-    private async Task LoadSingleLevel()
-    {
-        var room1Path = Path.Combine(Content.RootDirectory, "Room1.ldtk");
-        _logger.Debug($"Loading Room1.ldtk from: {room1Path}");
-
-        var file = await Task.Run(() => LDtkFile.FromFile(room1Path));
-
-        _simpleLevelRenderer.SetLDtkContext(file);
-
-        _currentLevel = await _simpleMapService.LoadLevelAsync(file);
-
-        if (_currentLevel != null)
-        {
-            await _simpleLevelRenderer.LoadTilesetsAsync(Content);
-
-            var spawnPosition = FindPlayerSpawnPoint(_currentLevel);
-            _player = new Player(spawnPosition);
-
-            var roomSize = new Vector2(_currentLevel.PxWid, _currentLevel.PxHei);
-            _camera.FollowPlayer(_player, Vector2.Zero, roomSize);
-
-            _logger.Debug($"Level loaded - Size: {_currentLevel.PxWid}x{_currentLevel.PxHei}");
-            _logger.Debug($"Player spawn position: {_player.Position}");
-        }
-        else
-        {
-            _logger.Error("Failed to load Room1.ldtk");
-        }
-    }
-
-    private Vector2 FindPlayerSpawnPoint(LDtkLevel level)
-    {
-        foreach (var layer in level.LayerInstances)
-            if (layer._Type == LayerType.Entities)
-            {
-                var playerEntity = layer.EntityInstances
-                    .FirstOrDefault(e => e._Identifier.Equals("Player", StringComparison.OrdinalIgnoreCase));
-
-                if (playerEntity != null)
-                {
-                    var spawnPos = new Vector2(playerEntity.Px.X, playerEntity.Px.Y);
-                    spawnPos.X = MathHelper.Clamp(spawnPos.X, 0, level.PxWid - Player.Size);
-                    spawnPos.Y = MathHelper.Clamp(spawnPos.Y, 0, level.PxHei - Player.Size);
-
-                    _logger.Debug($"Found player spawn point at ({spawnPos.X}, {spawnPos.Y})");
-                    return spawnPos;
-                }
-            }
-
-        // Fallback to level center
-        var centerPos = new Vector2(
-            MathHelper.Clamp(level.PxWid / 2f - Player.Size / 2f, 0, level.PxWid - Player.Size),
-            MathHelper.Clamp(level.PxHei / 2f - Player.Size / 2f, 0, level.PxHei - Player.Size)
-        );
-        _logger.Debug($"No player spawn point found, using level center: ({centerPos.X}, {centerPos.Y})");
-        return centerPos;
-    }
-
     protected override void Update(GameTime gameTime)
     {
         _inputService.Update(gameTime);
-        if (_inputService.IsExitPressed()) Exit();
+        if (_inputService.IsExitPressed())
+            Exit();
 
-        if (_player == null) return;
+        if (_player == null || !_mapService.IsLoaded)
+            return;
 
         var dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         var dir = _inputService.GetMovementDirection();
         var delta = Movement.ComputeDelta(dir, PlayerSpeed, dt);
 
-        if (_loadedLevels.Any())
+        // Handle teleportation (only works if multiple levels/layers available)
+        if (_mapService.CurrentLevels.Count > 1)
         {
-            // Check for teleport interactions with input requirement
             var teleportPressed = _inputService.IsPrimaryActionPressed();
             if (_teleportService.CheckTeleportInteraction(_player.Position, teleportPressed, out var targetDepth,
                     out var targetPos))
                 if (_worldLayerService.SwitchToLayer(targetDepth))
                 {
                     _logger.Debug($"Player teleported to world depth {targetDepth}");
-                    if (targetPos.HasValue) _player.SetPosition(targetPos.Value);
+                    if (targetPos.HasValue)
+                        _player.SetPosition(targetPos.Value);
 
-                    // Update ALL systems for new layer
+                    // Update all systems for new layer
                     var newLayerLevels = _worldLayerService.GetCurrentLayerLevels();
                     _collisionService.InitializeCollision(newLayerLevels);
                     _entityService.UpdateEntitiesForCurrentLayer(newLayerLevels);
-                    _teleportService.InitializeTeleports(); // Re-initialize teleports for new layer
+                    _teleportService.InitializeTeleports();
 
                     UpdateCameraBounds();
                 }
+        }
 
-            // Multi-level world with collision
-            var newPos = _player.Position + delta;
-            var correctedPos = _collisionService.ResolveCollision(
-                _player.Position, newPos, new Vector2(Player.Size, Player.Size));
+        // Handle movement with collision detection
+        var newPos = _player.Position + delta;
 
-            _player.SetPosition(correctedPos);
+        // Use collision detection for multi-level worlds, simple bounds checking for single levels
+        Vector2 correctedPos;
+        if (_mapService.CurrentLevels.Count > 1)
+        {
+            correctedPos = _collisionService.ResolveCollision(
+                _player.Position, newPos, new Vector2(PlayerControl.Size, PlayerControl.Size));
+        }
+        else
+        {
+            // Simple bounds checking for single level
+            var bounds = _mapService.GetWorldBounds();
+            correctedPos = new Vector2(
+                MathHelper.Clamp(newPos.X, bounds.X, bounds.X + bounds.Width - PlayerControl.Size),
+                MathHelper.Clamp(newPos.Y, bounds.Y, bounds.Y + bounds.Height - PlayerControl.Size)
+            );
+        }
+
+        _player.SetPosition(correctedPos);
+        if (_mapService.CurrentLevels.Count > 1)
+        {
+            // Multi-level world: update camera bounds for current layer
             UpdateCameraBounds();
         }
-        else if (_currentLevel != null)
+        else
         {
-            // Single level logic unchanged
-            var levelSize = new Vector2(_currentLevel.PxWid, _currentLevel.PxHei);
-            _player.Update(delta, levelSize);
-
-            var roomSize = new Vector2(_currentLevel.PxWid, _currentLevel.PxHei);
-            _camera.FollowPlayer(_player, Vector2.Zero, roomSize);
+            // Single level: follow player within the single level bounds
+            var bounds = _mapService.GetWorldBounds();
+            var roomPosition = new Vector2(bounds.X, bounds.Y);
+            var roomSize = new Vector2(bounds.Width, bounds.Height);
+            _camera.FollowPlayer(_player, roomPosition, roomSize);
         }
 
         base.Update(gameTime);
@@ -328,47 +377,32 @@ public class OctarineGameHost : Game
         GraphicsDevice.SetRenderTarget(_renderTarget);
         GraphicsDevice.Clear(Color.Black);
 
-        if (_player != null)
+        if (_player != null && _mapService.IsLoaded)
         {
             var worldMatrix = _camera.GetTransformMatrix() * Matrix.CreateScale(WorldRenderScale);
 
             _spriteBatch.Begin(samplerState: SamplerState.PointClamp, transformMatrix: worldMatrix);
 
-            if (_loadedLevels.Any())
-            {
-                // Render only current world layer
-                var currentLayerLevels = _worldLayerService.GetCurrentLayerLevels();
-                _worldRenderer.RenderWorld(currentLayerLevels, _spriteBatch, _camera);
+            var currentLayerLevels = _worldLayerService.GetCurrentLayerLevels();
 
-                // Draw teleport indicator if available
-                if (_teleportService.IsTeleportAvailable(_player.Position, out var targetDepth, out var targetPos))
-                {
-                    // Draw a pulsing outline around teleporter area
-                    var pulseIntensity = 0.5f + 0.5f * (float)Math.Sin(gameTime.TotalGameTime.TotalSeconds * 4.0);
-                    var indicatorColor = Color.Cyan * pulseIntensity;
+            // Render background and collision layers (behind player)
+            _levelRenderer.RenderLevelsBeforePlayer(currentLayerLevels, _spriteBatch, _camera);
 
-                    // Draw simple indicator near player
-                    var indicatorRect = new Rectangle(
-                        (int)(_player.Position.X - 8),
-                        (int)(_player.Position.Y - 12),
-                        Player.Size + 16,
-                        4);
-                    _spriteBatch.Draw(_pixel, indicatorRect, indicatorColor);
-                }
-            }
-            else if (_currentLevel != null)
-            {
-                // Render single level
-                _simpleLevelRenderer.RenderLevel(_currentLevel, _spriteBatch, Vector2.Zero);
-            }
-
-            // Render player
+            // Render player at correct depth
             _player.Draw(_spriteBatch, _pixel, Color.Red);
+
+            // Render foreground layers (in front of player)
+            _levelRenderer.RenderLevelsAfterPlayer(currentLayerLevels, _spriteBatch, _camera);
+
+            // Draw teleport indicator if available (only for multi-level worlds)
+            if (_mapService.CurrentLevels.Count > 1 &&
+                _teleportService.IsTeleportAvailable(_player.Position, out var targetDepth, out var targetPos))
+                DrawTeleportIndicator(gameTime);
 
             _spriteBatch.End();
         }
 
-        // Render to screen
+        // Render to screen with scaling
         GraphicsDevice.SetRenderTarget(null);
         GraphicsDevice.Clear(Color.Black);
 
@@ -376,6 +410,21 @@ public class OctarineGameHost : Game
         _spriteBatch.Begin(samplerState: SamplerState.PointClamp);
         _spriteBatch.Draw(_renderTarget, destinationRect, Color.White);
         _spriteBatch.End();
+    }
+
+    private void DrawTeleportIndicator(GameTime gameTime)
+    {
+        // Draw a pulsing outline around teleporter area
+        var pulseIntensity = 0.5f + 0.5f * (float)Math.Sin(gameTime.TotalGameTime.TotalSeconds * 4.0);
+        var indicatorColor = Color.Cyan * pulseIntensity;
+
+        // Draw simple indicator near player
+        var indicatorRect = new Rectangle(
+            (int)(_player.Position.X - 8),
+            (int)(_player.Position.Y - 12),
+            PlayerControl.Size + 16,
+            4);
+        _spriteBatch.Draw(_pixel, indicatorRect, indicatorColor);
     }
 
     protected override void UnloadContent()

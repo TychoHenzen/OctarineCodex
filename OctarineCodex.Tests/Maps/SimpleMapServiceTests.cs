@@ -1,86 +1,133 @@
 ﻿using FluentAssertions;
+using LDtk;
+using OctarineCodex.Logging;
 using OctarineCodex.Maps;
 
 namespace OctarineCodex.Tests.Maps;
 
-public class SimpleMapServiceTests
+/// <summary>
+///     Tests for the unified MapService, replacing the old SimpleMapService tests.
+///     These tests verify single-level loading scenarios using the new unified API.
+/// </summary>
+public class MapServiceTests
 {
+    private readonly ILoggingService _logger;
+
+    public MapServiceTests()
+    {
+        _logger = new LoggingService();
+    }
+
     [Fact]
-    public async Task LoadLevelAsync_WithValidRoom1File_ShouldLoadFirstLevel()
+    public async Task LoadAsync_WithValidRoom1File_ShouldLoadFirstLevel()
     {
         // Arrange
-        var mapService = new SimpleMapService();
+        var mapService = new MapService(_logger);
         var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
+        var file = await Task.Run(() => LDtkFile.FromFile(filePath));
+        var options = new MapLoadOptions { LoadAllLevels = false }; // Load only first level
 
         // Act
-        var level = await mapService.LoadLevelAsync(filePath);
+        var success = await mapService.LoadAsync(file, options);
 
         // Assert
+        success.Should().BeTrue();
+        mapService.IsLoaded.Should().BeTrue();
+        mapService.CurrentLevels.Should().HaveCount(1);
+
+        var level = mapService.CurrentLevels[0];
         level.Should().NotBeNull();
-        level!.Identifier.Should().Be("AutoLayer");
+        level.Identifier.Should().Be("AutoLayer");
         level.PxWid.Should().Be(296);
         level.PxHei.Should().Be(208);
-        mapService.IsLevelLoaded.Should().BeTrue();
-        mapService.CurrentLevel.Should().Be(level);
     }
 
     [Fact]
-    public async Task LoadLevelAsync_WithSpecificLevelIdentifier_ShouldLoadCorrectLevel()
+    public async Task LoadAsync_WithSpecificLevelIdentifier_ShouldLoadCorrectLevel()
     {
         // Arrange
-        var mapService = new SimpleMapService();
+        var mapService = new MapService(_logger);
         var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
+        var file = await Task.Run(() => LDtkFile.FromFile(filePath));
+        var options = new MapLoadOptions { SpecificLevelIdentifier = "AutoLayer" };
 
         // Act
-        var level = await mapService.LoadLevelAsync(filePath, "AutoLayer");
+        var success = await mapService.LoadAsync(file, options);
 
         // Assert
+        success.Should().BeTrue();
+        mapService.IsLoaded.Should().BeTrue();
+        mapService.CurrentLevels.Should().HaveCount(1);
+
+        var level = mapService.CurrentLevels[0];
         level.Should().NotBeNull();
-        level!.Identifier.Should().Be("AutoLayer");
-        mapService.IsLevelLoaded.Should().BeTrue();
-        mapService.CurrentLevel.Should().Be(level);
+        level.Identifier.Should().Be("AutoLayer");
     }
 
     [Fact]
-    public async Task LoadLevelAsync_WithInvalidFile_ShouldReturnNull()
+    public async Task LoadAsync_WithInvalidFile_ShouldReturnFalse()
     {
         // Arrange
-        var mapService = new SimpleMapService();
+        var mapService = new MapService(_logger);
         var filePath = "Content/NonExistent.ldtk";
 
         // Act
-        var level = await mapService.LoadLevelAsync(filePath);
+        var loadAction = async () =>
+        {
+            var file = await Task.Run(() => LDtkFile.FromFile(filePath));
+            return await mapService.LoadAsync(file);
+        };
 
         // Assert
-        level.Should().BeNull();
-        mapService.IsLevelLoaded.Should().BeFalse();
-        mapService.CurrentLevel.Should().BeNull();
+        await loadAction.Should().ThrowAsync<Exception>(); // File loading will throw before we get to LoadAsync
+        mapService.IsLoaded.Should().BeFalse();
+        mapService.CurrentLevels.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task LoadLevelAsync_WithInvalidLevelIdentifier_ShouldReturnNull()
+    public async Task LoadAsync_WithInvalidLevelIdentifier_ShouldReturnFalse()
     {
         // Arrange
-        var mapService = new SimpleMapService();
+        var mapService = new MapService(_logger);
         var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
+        var file = await Task.Run(() => LDtkFile.FromFile(filePath));
+        var options = new MapLoadOptions { SpecificLevelIdentifier = "NonExistentLevel" };
 
         // Act
-        var level = await mapService.LoadLevelAsync(filePath, "NonExistentLevel");
+        var success = await mapService.LoadAsync(file, options);
 
         // Assert
-        level.Should().BeNull();
-        mapService.IsLevelLoaded.Should().BeFalse();
-        mapService.CurrentLevel.Should().BeNull();
+        success.Should().BeFalse();
+        mapService.IsLoaded.Should().BeFalse();
+        mapService.CurrentLevels.Should().BeEmpty();
     }
 
     [Fact]
-    public void IsLevelLoaded_WhenNoLevelLoaded_ShouldBeFalse()
+    public void IsLoaded_WhenNoLevelLoaded_ShouldBeFalse()
     {
         // Arrange
-        var mapService = new SimpleMapService();
+        var mapService = new MapService(_logger);
 
         // Act & Assert
-        mapService.IsLevelLoaded.Should().BeFalse();
-        mapService.CurrentLevel.Should().BeNull();
+        mapService.IsLoaded.Should().BeFalse();
+        mapService.CurrentLevels.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task LoadAsync_LoadAllLevelsOption_ShouldLoadAllLevels()
+    {
+        // Arrange
+        var mapService = new MapService(_logger);
+        var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
+        var file = await Task.Run(() => LDtkFile.FromFile(filePath));
+        var options = new MapLoadOptions { LoadAllLevels = true };
+
+        // Act
+        var success = await mapService.LoadAsync(file, options);
+
+        // Assert
+        success.Should().BeTrue();
+        mapService.IsLoaded.Should().BeTrue();
+        mapService.CurrentLevels.Should().NotBeEmpty();
     }
 }

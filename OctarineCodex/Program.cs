@@ -19,24 +19,20 @@ public static class Program
         // Create game with all injected services
         var logger = serviceProvider.GetRequiredService<ILoggingService>();
         var inputService = serviceProvider.GetRequiredService<IInputService>();
-        var worldMapService = serviceProvider.GetRequiredService<IWorldMapService>();
         var collisionService = serviceProvider.GetRequiredService<ICollisionService>();
         var entityService = serviceProvider.GetRequiredService<IEntityService>();
-        var worldRenderer = serviceProvider.GetRequiredService<IWorldRenderer>();
-        var simpleMapService = serviceProvider.GetRequiredService<ISimpleMapService>();
-        var simpleLevelRenderer = serviceProvider.GetRequiredService<ISimpleLevelRenderer>();
+        var mapService = serviceProvider.GetRequiredService<IMapService>();
+        var levelRenderer = serviceProvider.GetRequiredService<ILevelRenderer>();
         var worldLayerService = serviceProvider.GetRequiredService<IWorldLayerService>();
         var teleportService = serviceProvider.GetRequiredService<ITeleportService>();
 
         using var game = new OctarineGameHost(
             logger,
             inputService,
-            worldMapService,
+            mapService,
+            levelRenderer,
             collisionService,
             entityService,
-            worldRenderer,
-            simpleMapService,
-            simpleLevelRenderer,
             worldLayerService,
             teleportService);
 

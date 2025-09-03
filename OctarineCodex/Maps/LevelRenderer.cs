@@ -8,19 +8,24 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using OctarineCodex.Logging;
+using OctarineCodex.Player;
 
 namespace OctarineCodex.Maps;
 
-public class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
+/// <summary>
+///     Unified level renderer that can handle both single and multiple LDtk levels
+///     with automatic viewport culling and world positioning.
+/// </summary>
+public class LevelRenderer : ILevelRenderer, IDisposable
 {
     private readonly Dictionary<string, Texture2D> _loadedTextures = new();
-    protected readonly ILoggingService _logger;
+    private readonly ILoggingService _logger;
     private GraphicsDevice? _graphicsDevice;
     private LDtkFile? _ldtkFile; // Store file reference for definitions
 
-    public SimpleLevelRenderer(ILoggingService logger)
+    public LevelRenderer(ILoggingService logger)
     {
-        _logger = logger;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public void Dispose()
@@ -34,6 +39,12 @@ public class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
     public void Initialize(GraphicsDevice graphicsDevice)
     {
         _graphicsDevice = graphicsDevice ?? throw new ArgumentNullException(nameof(graphicsDevice));
+    }
+
+    public void SetLDtkContext(LDtkFile file)
+    {
+        _ldtkFile = file;
+        _logger.Debug($"SetLDtkContext called. File has {file?.Defs?.Tilesets?.Length ?? 0} tilesets");
     }
 
     public async Task LoadTilesetsAsync(ContentManager content)
@@ -81,33 +92,152 @@ public class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
         }
 
         _logger.Debug($"Total loaded textures: {_loadedTextures.Count}");
-        foreach (var kvp in _loadedTextures) _logger.Debug($"  - {kvp.Key}: {kvp.Value?.Width}x{kvp.Value?.Height}");
+        foreach (var kvp in _loadedTextures)
+            _logger.Debug($"  - {kvp.Key}: {kvp.Value?.Width}x{kvp.Value?.Height}");
     }
 
-    public void RenderLevel(LDtkLevel level, SpriteBatch spriteBatch, Vector2 screenCenter)
+    public void RenderLevelsBeforePlayer(IEnumerable<LDtkLevel> levels, SpriteBatch spriteBatch, Camera2D camera)
     {
-        if (_graphicsDevice == null || level == null) return;
+        if (_graphicsDevice == null || levels == null) return;
+
+        var levelsList = levels.ToList();
+        if (!levelsList.Any()) return;
+
+        // Handle single level rendering (legacy behavior - centered on screen)
+        if (levelsList.Count == 1)
+        {
+            RenderSingleLevelBeforePlayer(levelsList[0], spriteBatch, Vector2.Zero);
+            return;
+        }
+
+        // Handle multi-level world rendering with viewport culling
+        RenderWorldLevelsBeforePlayer(levelsList, spriteBatch, camera);
+    }
+
+    public void RenderLevelsAfterPlayer(IEnumerable<LDtkLevel> levels, SpriteBatch spriteBatch, Camera2D camera)
+    {
+        if (_graphicsDevice == null || levels == null) return;
+
+        var levelsList = levels.ToList();
+        if (!levelsList.Any()) return;
+
+        // Handle single level rendering (legacy behavior - centered on screen)
+        if (levelsList.Count == 1)
+        {
+            RenderSingleLevelAfterPlayer(levelsList[0], spriteBatch, Vector2.Zero);
+            return;
+        }
+
+        // Handle multi-level world rendering with viewport culling
+        RenderWorldLevelsAfterPlayer(levelsList, spriteBatch, camera);
+    }
+
+    private void RenderSingleLevelBeforePlayer(LDtkLevel level, SpriteBatch spriteBatch, Vector2 screenCenter)
+    {
+        if (level == null) return;
 
         // Draw level background
         var levelBounds = new Rectangle((int)screenCenter.X, (int)screenCenter.Y, level.PxWid, level.PxHei);
         var pixelTexture = GetOrCreatePixelTexture();
         spriteBatch.Draw(pixelTexture, levelBounds, Color.DarkGray * 0.3f);
 
+        // Find collision layer index
+        var collisionLayerIndex = FindCollisionLayerIndex(level);
 
+        // Render layers from collision layer onwards (including collision layer)
+        // These are background/collision layers that should appear behind the player
         if (level.LayerInstances != null)
-            foreach (var layer in level.LayerInstances.Reverse())
+            for (var i = level.LayerInstances.Length - 1; i >= collisionLayerIndex; i--)
             {
-                // Skip invisible layers
+                var layer = level.LayerInstances[i];
                 if (!layer.Visible) continue;
-
                 RenderLayer(layer, spriteBatch, screenCenter);
             }
     }
 
-    public void SetLDtkContext(LDtkFile file)
+    private void RenderSingleLevelAfterPlayer(LDtkLevel level, SpriteBatch spriteBatch, Vector2 screenCenter)
     {
-        _ldtkFile = file;
-        _logger.Debug($"SetLDtkContext called. File has {file?.Defs?.Tilesets?.Length ?? 0} tilesets");
+        if (level == null) return;
+
+        // Find collision layer index
+        var collisionLayerIndex = FindCollisionLayerIndex(level);
+
+        // Only render layers that come before the collision layer
+        // These are foreground layers that should appear in front of the player
+        if (level.LayerInstances != null && collisionLayerIndex > 0)
+            for (var i = collisionLayerIndex - 1; i >= 0; i--)
+            {
+                var layer = level.LayerInstances[i];
+                if (!layer.Visible) continue;
+                RenderLayer(layer, spriteBatch, screenCenter);
+            }
+    }
+
+    private void RenderWorldLevelsBeforePlayer(IReadOnlyList<LDtkLevel> levels, SpriteBatch spriteBatch,
+        Camera2D camera)
+    {
+        // Calculate visible bounds from camera position and viewport
+        var cameraBounds = new Rectangle(
+            (int)camera.Position.X,
+            (int)camera.Position.Y,
+            (int)camera.ViewportSize.X,
+            (int)camera.ViewportSize.Y
+        );
+
+        foreach (var level in levels)
+        {
+            var levelBounds = new Rectangle(level.WorldX, level.WorldY, level.PxWid, level.PxHei);
+
+            // Only render levels that intersect with camera view (viewport culling)
+            if (cameraBounds.Intersects(levelBounds))
+            {
+                var levelOffset = new Vector2(level.WorldX, level.WorldY);
+                RenderSingleLevelBeforePlayer(level, spriteBatch, levelOffset);
+            }
+        }
+    }
+
+    private void RenderWorldLevelsAfterPlayer(IReadOnlyList<LDtkLevel> levels, SpriteBatch spriteBatch, Camera2D camera)
+    {
+        // Calculate visible bounds from camera position and viewport
+        var cameraBounds = new Rectangle(
+            (int)camera.Position.X,
+            (int)camera.Position.Y,
+            (int)camera.ViewportSize.X,
+            (int)camera.ViewportSize.Y
+        );
+
+        foreach (var level in levels)
+        {
+            var levelBounds = new Rectangle(level.WorldX, level.WorldY, level.PxWid, level.PxHei);
+
+            // Only render levels that intersect with camera view (viewport culling)
+            if (cameraBounds.Intersects(levelBounds))
+            {
+                var levelOffset = new Vector2(level.WorldX, level.WorldY);
+                RenderSingleLevelAfterPlayer(level, spriteBatch, levelOffset);
+            }
+        }
+    }
+
+    private int FindCollisionLayerIndex(LDtkLevel level)
+    {
+        if (level.LayerInstances == null)
+            return level.LayerInstances?.Length ?? 0;
+
+        // Find collision layer (same logic as CollisionService)
+        for (var i = 0; i < level.LayerInstances.Length; i++)
+        {
+            var layer = level.LayerInstances[i];
+            if (layer._Type == LayerType.IntGrid &&
+                (layer._Identifier.Contains("Collision", StringComparison.OrdinalIgnoreCase) ||
+                 layer._Identifier.Contains("Solid", StringComparison.OrdinalIgnoreCase)))
+                return i + 1;
+        }
+
+        // If no collision layer found, assume all layers should render before player
+        _logger.Debug("No collision layer found, rendering all layers before player");
+        return level.LayerInstances.Length;
     }
 
     private void RenderLayer(LayerInstance layer, SpriteBatch spriteBatch, Vector2 levelOffset)
@@ -134,6 +264,7 @@ public class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
                 break;
 
             case LayerType.Entities:
+                // Entity rendering is handled elsewhere
                 break;
         }
     }
@@ -208,7 +339,8 @@ public class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
             cellsRendered++;
         }
 
-        Console.WriteLine($"Rendered {cellsRendered} IntGrid cells for layer {layer._Identifier}");
+        if (cellsRendered > 0)
+            _logger.Debug($"Rendered {cellsRendered} IntGrid cells for layer {layer._Identifier}");
     }
 
     private async Task<Texture2D?> LoadTilesetTextureAsync(TilesetDefinition tilesetDef, ContentManager content)
@@ -217,7 +349,7 @@ public class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
         {
             if (string.IsNullOrEmpty(tilesetDef.RelPath))
             {
-                Console.WriteLine($"Empty RelPath for tileset UID {tilesetDef.Uid}");
+                _logger.Debug($"Empty RelPath for tileset UID {tilesetDef.Uid}");
                 return null;
             }
 
@@ -268,8 +400,7 @@ public class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.Debug($"Failed to create any texture for tileset {tilesetDef.RelPath}: {ex.Message}");
-            _logger.Debug($"Failed to load tileset {tilesetDef.RelPath}: {ex.Message}");
+            _logger.Error($"Failed to create any texture for tileset {tilesetDef.RelPath}: {ex.Message}");
             return null;
         }
     }
@@ -284,9 +415,5 @@ public class SimpleLevelRenderer : ISimpleLevelRenderer, IDisposable
         }
 
         return _loadedTextures["__pixel__"];
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
     }
 }

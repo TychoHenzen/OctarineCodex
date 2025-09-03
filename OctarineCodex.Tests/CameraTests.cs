@@ -1,7 +1,6 @@
 ﻿using FluentAssertions;
 using Microsoft.Xna.Framework;
-using OctarineCodex;
-using Xunit;
+using OctarineCodex.Player;
 
 namespace OctarineCodex.Tests;
 
@@ -12,10 +11,10 @@ public class CameraTests
     {
         // Arrange
         var viewportSize = new Vector2(800, 600);
-        
+
         // Act
         var camera = new Camera2D(viewportSize);
-        
+
         // Assert
         camera.ViewportSize.Should().Be(viewportSize);
         camera.Position.Should().Be(Vector2.Zero);
@@ -30,14 +29,14 @@ public class CameraTests
         var playerPosition = new Vector2(500, 400); // Player more centered in room
         var playerSize = 32;
         var roomSize = new Vector2(1200, 1000); // Larger than viewport
-        
+
         // Act
         camera.FollowPlayer(playerPosition, playerSize, Vector2.Zero, roomSize);
-        
+
         // Assert
         // Camera should center on player (player center - viewport center)
-        var expectedCameraX = (playerPosition.X + playerSize / 2f) - (viewportSize.X / 2f);
-        var expectedCameraY = (playerPosition.Y + playerSize / 2f) - (viewportSize.Y / 2f);
+        var expectedCameraX = playerPosition.X + playerSize / 2f - viewportSize.X / 2f;
+        var expectedCameraY = playerPosition.Y + playerSize / 2f - viewportSize.Y / 2f;
         camera.Position.X.Should().BeApproximately(expectedCameraX, 0.1f);
         camera.Position.Y.Should().BeApproximately(expectedCameraY, 0.1f);
     }
@@ -51,10 +50,10 @@ public class CameraTests
         var playerPosition = new Vector2(50, 300); // Near left edge
         var playerSize = 32;
         var roomSize = new Vector2(1200, 1000);
-        
+
         // Act
         camera.FollowPlayer(playerPosition, playerSize, Vector2.Zero, roomSize);
-        
+
         // Assert
         // Camera should be constrained to not show outside room bounds
         camera.Position.X.Should().BeGreaterThanOrEqualTo(0);
@@ -69,15 +68,16 @@ public class CameraTests
         var playerPosition = new Vector2(1150, 300); // Near right edge
         var playerSize = 32;
         var roomSize = new Vector2(1200, 1000);
-        
+
         // Act
         camera.FollowPlayer(playerPosition, playerSize, Vector2.Zero, roomSize);
-        
+
         // Assert
         // Camera should be constrained to not show outside room bounds
         var maxCameraX = roomSize.X - viewportSize.X;
         camera.Position.X.Should().BeLessThanOrEqualTo(maxCameraX);
     }
+
     [Fact]
     public void Camera2D_FollowPlayer_SmallRoom_KeepsRoomAtOrigin()
     {
@@ -87,10 +87,10 @@ public class CameraTests
         var playerPosition = new Vector2(200, 150);
         var playerSize = 32;
         var roomSize = new Vector2(400, 300); // Smaller than viewport
-    
+
         // Act
         camera.FollowPlayer(playerPosition, playerSize, Vector2.Zero, roomSize);
-    
+
         // Assert
         // When room is smaller than viewport, camera should stay at room origin
         // to prevent showing areas outside the room bounds
@@ -105,10 +105,10 @@ public class CameraTests
         var viewportSize = new Vector2(800, 600);
         var camera = new Camera2D(viewportSize);
         camera.Position = new Vector2(100, 50);
-        
+
         // Act
         var matrix = camera.GetTransformMatrix();
-        
+
         // Assert
         // Transform matrix should translate by negative camera position
         var expectedMatrix = Matrix.CreateTranslation(-100, -50, 0);
@@ -116,21 +116,23 @@ public class CameraTests
     }
 
     [Theory]
-    [InlineData(100, 150, 32, 200, 200, true)]  // Player near right edge (200-132=68 > 32, but 200-(100+32)=68, close to edge)
+    [InlineData(100, 150, 32, 200, 200,
+        true)] // Player near right edge (200-132=68 > 32, but 200-(100+32)=68, close to edge)
     [InlineData(300, 250, 32, 200, 200, false)] // Player outside room bounds
-    [InlineData(20, 100, 32, 200, 200, true)]   // Player very close to left edge (20 <= 32)
+    [InlineData(20, 100, 32, 200, 200, true)] // Player very close to left edge (20 <= 32)
     public void Camera2D_IsPlayerNearRoomEdge_DetectsCorrectly(
-        float playerX, float playerY, int playerSize, 
+        float playerX, float playerY, int playerSize,
         float roomWidth, float roomHeight, bool expectedNearEdge)
     {
         // Arrange
         var playerPosition = new Vector2(playerX, playerY);
         var roomSize = new Vector2(roomWidth, roomHeight);
         var edgeThreshold = 32; // One tile width
-        
+
         // Act
-        var isNearEdge = Camera2D.IsPlayerNearRoomEdge(playerPosition, playerSize, Vector2.Zero, roomSize, edgeThreshold);
-        
+        var isNearEdge =
+            Camera2D.IsPlayerNearRoomEdge(playerPosition, playerSize, Vector2.Zero, roomSize, edgeThreshold);
+
         // Assert
         isNearEdge.Should().Be(expectedNearEdge);
     }

@@ -1,7 +1,6 @@
 ﻿using FluentAssertions;
 using Microsoft.Xna.Framework;
-using OctarineCodex;
-using Xunit;
+using OctarineCodex.Player;
 
 namespace OctarineCodex.Tests;
 
@@ -27,8 +26,8 @@ public class MovementTests
     {
         var dir = Movement.GetDirection(true, false, true, false);
         dir.Length().Should().BeApproximately(1f, 1e-6f);
-        dir.X.Should().BeApproximately(-1f / (float)System.Math.Sqrt(2.0), 1e-6f);
-        dir.Y.Should().BeApproximately(-1f / (float)System.Math.Sqrt(2.0), 1e-6f);
+        dir.X.Should().BeApproximately(-1f / (float)Math.Sqrt(2.0), 1e-6f);
+        dir.Y.Should().BeApproximately(-1f / (float)Math.Sqrt(2.0), 1e-6f);
     }
 
     [Fact]
@@ -42,8 +41,8 @@ public class MovementTests
     public void ComputeDelta_NormalizesDirectionAndScalesBySpeedAndDt()
     {
         var dir = new Vector2(3f, 4f); // length 5
-        float speed = 100f;
-        float dt = 0.1f; // 100ms
+        var speed = 100f;
+        var dt = 0.1f; // 100ms
         var delta = Movement.ComputeDelta(dir, speed, dt);
 
         // Normalized dir is (0.6, 0.8); scaled by 10 => (6, 8)

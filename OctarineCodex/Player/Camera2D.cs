@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.Xna.Framework;
 
-namespace OctarineCodex;
+namespace OctarineCodex.Player;
 
 /// <summary>
 ///     2D camera system for handling player following, room constraints, and viewport transformations.
@@ -34,9 +34,9 @@ public class Camera2D
     /// <param name="player">The player to follow.</param>
     /// <param name="roomPosition">The position of the current room in world coordinates.</param>
     /// <param name="roomSize">The size of the current room.</param>
-    public void FollowPlayer(Player player, Vector2 roomPosition, Vector2 roomSize)
+    public void FollowPlayer(PlayerControl player, Vector2 roomPosition, Vector2 roomSize)
     {
-        FollowPlayer(player.Position, Player.Size, roomPosition, roomSize);
+        FollowPlayer(player.Position, PlayerControl.Size, roomPosition, roomSize);
     }
 
     /// <summary>
@@ -90,9 +90,10 @@ public class Camera2D
     /// <param name="roomSize">The size of the current room.</param>
     /// <param name="edgeThreshold">The distance from the edge to consider "near".</param>
     /// <returns>True if the player is near any room edge, false otherwise.</returns>
-    public static bool IsPlayerNearRoomEdge(Player player, Vector2 roomPosition, Vector2 roomSize, float edgeThreshold)
+    public static bool IsPlayerNearRoomEdge(PlayerControl player, Vector2 roomPosition, Vector2 roomSize,
+        float edgeThreshold)
     {
-        return IsPlayerNearRoomEdge(player.Position, Player.Size, roomPosition, roomSize, edgeThreshold);
+        return IsPlayerNearRoomEdge(player.Position, PlayerControl.Size, roomPosition, roomSize, edgeThreshold);
     }
 
     /// <summary>

@@ -6,7 +6,7 @@ namespace OctarineCodex;
 /// <summary>
 ///     Represents the player entity with position, movement, and rendering capabilities.
 /// </summary>
-public class Player
+public class PlayerControl
 {
     /// <summary>
     ///     The size of the player sprite in pixels.
@@ -17,7 +17,7 @@ public class Player
     ///     Initializes a new player at the specified position.
     /// </summary>
     /// <param name="initialPosition">The starting position of the player.</param>
-    public Player(Vector2 initialPosition)
+    public PlayerControl(Vector2 initialPosition)
     {
         SetPosition(initialPosition);
     }
