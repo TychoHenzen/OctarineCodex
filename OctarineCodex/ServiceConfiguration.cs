@@ -1,9 +1,12 @@
 ﻿using System;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Xna.Framework;
 using OctarineCodex.Entities;
 using OctarineCodex.Input;
 using OctarineCodex.Logging;
 using OctarineCodex.Maps;
+using OctarineCodex.Services;
+using static OctarineCodex.OctarineConstants;
 
 namespace OctarineCodex;
 
@@ -28,6 +31,11 @@ public static class ServiceConfiguration
         services.AddSingleton<IControllerInputProvider, DesktopControllerInputProvider>();
         services.AddSingleton<IInputService, CompositeInputService>();
 
+        services.AddSingleton<ICameraService>(provider =>
+        {
+            var worldViewportSize = new Vector2(FixedWidth, FixedHeight) / WorldRenderScale;
+            return new CameraService(worldViewportSize);
+        });
 
         services.AddSingleton<IMapService, MapService>();
         services.AddTransient<ILevelRenderer, LevelRenderer>();

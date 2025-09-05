@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Threading.Tasks;
 using LDtk;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -12,7 +11,7 @@ public interface ILevelRenderer
 {
     void Initialize(GraphicsDevice graphicsDevice);
     void SetLDtkContext(LDtkFile file);
-    Task LoadTilesetsAsync(ContentManager content);
+    void LoadTilesets(ContentManager content);
 
     void RenderLevelsBeforePlayer(IEnumerable<LDtkLevel> levels, SpriteBatch spriteBatch, Camera2D camera,
         Vector2 playerPosition);

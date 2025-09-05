@@ -4,11 +4,12 @@ using System.Linq;
 using System.Reflection;
 using LDtk;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using OctarineCodex.Entities.Behaviors;
 
 public class EntityWrapper : ILDtkEntity
 {
-    private readonly List<IBehavior> _behaviors = new();
+    protected readonly List<IBehavior> _behaviors = new();
     private readonly Dictionary<Type, IBehavior> _behaviorsByType = new();
     private readonly Dictionary<string, object> _customFieldCache = new();
     private readonly IServiceProvider _services;
@@ -146,7 +147,7 @@ public class EntityWrapper : ILDtkEntity
         foreach (var behavior in _behaviors) behavior.OnMessage(message);
     }
 
-    public void Update(GameTime gameTime)
+    public virtual void Update(GameTime gameTime)
     {
         foreach (var behavior in _behaviors) behavior.Update(gameTime);
     }
@@ -160,5 +161,10 @@ public class EntityWrapper : ILDtkEntity
             _behaviors.Remove(behavior);
             _behaviorsByType.Remove(behaviorType);
         }
+    }
+
+    public void Draw(SpriteBatch spriteBatch)
+    {
+        foreach (var behavior in _behaviors) behavior.Draw(spriteBatch);
     }
 }

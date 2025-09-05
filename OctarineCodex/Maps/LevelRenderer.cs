@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using LDtk;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -53,7 +52,7 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         _logger.Debug($"SetLDtkContext called. File has {file?.Defs?.Tilesets?.Length ?? 0} tilesets");
     }
 
-    public async Task LoadTilesetsAsync(ContentManager content)
+    public void LoadTilesets(ContentManager content)
     {
         if (_graphicsDevice == null)
             throw new InvalidOperationException("GraphicsDevice must be initialized before loading tilesets");
@@ -84,7 +83,7 @@ public class LevelRenderer : ILevelRenderer, IDisposable
 
             if (!_loadedTextures.ContainsKey(tilesetKey))
             {
-                var texture = await LoadTilesetTextureAsync(tilesetDef, content);
+                var texture = LoadTilesetTextureAsync(tilesetDef, content);
                 if (texture != null)
                 {
                     _loadedTextures[tilesetKey] = texture;
@@ -445,7 +444,7 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         if (!_loadedTextures.TryGetValue(tilesetKey, out var tileset)) return;
 
         var layerColor = Color.White * opacity;
-        var playerBottomY = playerPosition.Y + PlayerControl.Size;
+        var playerBottomY = playerPosition.Y + OctarineConstants.PlayerSize;
 
         foreach (var tile in layer.AutoLayerTiles.Concat(layer.GridTiles))
         {
@@ -474,7 +473,7 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         if (!_loadedTextures.TryGetValue(tilesetKey, out var tileset)) return;
 
         var layerColor = Color.White * opacity;
-        var playerBottomY = playerPosition.Y + PlayerControl.Size;
+        var playerBottomY = playerPosition.Y + OctarineConstants.PlayerSize;
 
         foreach (var tile in layer.AutoLayerTiles.Concat(layer.GridTiles))
         {
@@ -540,7 +539,7 @@ public class LevelRenderer : ILevelRenderer, IDisposable
             _logger.Debug($"Rendered {cellsRendered} IntGrid cells for layer {layer._Identifier}");
     }
 
-    private async Task<Texture2D?> LoadTilesetTextureAsync(TilesetDefinition tilesetDef, ContentManager content)
+    private Texture2D? LoadTilesetTextureAsync(TilesetDefinition tilesetDef, ContentManager content)
     {
         try
         {

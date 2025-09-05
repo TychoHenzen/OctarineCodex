@@ -1,5 +1,7 @@
 ﻿// OctarineCodex/Entities/Messages/EntityMessages.cs
 
+using Microsoft.Xna.Framework;
+
 namespace OctarineCodex.Entities.Messages;
 
 public class DamageMessage
@@ -50,4 +52,28 @@ public class InteractionMessage
 
 public class DoorOpenedMessage
 {
+}
+
+public class PlayerMovedMessage
+{
+    public PlayerMovedMessage(Vector2 newPosition, Vector2 delta)
+    {
+        NewPosition = newPosition;
+        Delta = delta;
+    }
+
+    public Vector2 NewPosition { get; }
+    public Vector2 Delta { get; }
+}
+
+public class MovementBlockedMessage
+{
+    public MovementBlockedMessage(Vector2 intendedDirection, Vector2 intendedDelta)
+    {
+        IntendedDirection = intendedDirection;
+        IntendedDelta = intendedDelta;
+    }
+
+    public Vector2 IntendedDirection { get; }
+    public Vector2 IntendedDelta { get; }
 }

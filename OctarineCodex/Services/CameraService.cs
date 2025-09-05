@@ -1,0 +1,37 @@
+﻿using Microsoft.Xna.Framework;
+using OctarineCodex.Player;
+
+namespace OctarineCodex.Services;
+
+/// <summary>
+///     Service implementation for camera management
+/// </summary>
+public class CameraService : ICameraService
+{
+    public CameraService(Vector2 viewportSize)
+    {
+        Camera = new Camera2D(viewportSize);
+    }
+
+    public Camera2D Camera { get; }
+
+    public void FollowTarget(Vector2 targetPosition, int targetSize, Vector2 roomPosition, Vector2 roomSize)
+    {
+        Camera.FollowPlayer(targetPosition, targetSize, roomPosition, roomSize);
+    }
+
+    public Matrix GetTransformMatrix()
+    {
+        return Camera.GetTransformMatrix();
+    }
+
+    public Vector2 ScreenToWorld(Vector2 screenPosition)
+    {
+        return Camera.ScreenToWorld(screenPosition);
+    }
+
+    public Vector2 WorldToScreen(Vector2 worldPosition)
+    {
+        return Camera.WorldToScreen(worldPosition);
+    }
+}

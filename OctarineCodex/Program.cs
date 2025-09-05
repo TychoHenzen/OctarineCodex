@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OctarineCodex.Input;
 using OctarineCodex.Logging;
 using OctarineCodex.Maps;
+using OctarineCodex.Services;
 
 namespace OctarineCodex;
 
@@ -10,11 +11,11 @@ public static class Program
 {
     public static async Task Main(string[] args)
     {
-        // Set up dependency injection container
         var services = new ServiceCollection();
         services.AddOctarineServices();
 
         var serviceProvider = services.BuildServiceProvider();
+
 
         // Create game with all injected services
         var logger = serviceProvider.GetRequiredService<ILoggingService>();
@@ -25,6 +26,7 @@ public static class Program
         var levelRenderer = serviceProvider.GetRequiredService<ILevelRenderer>();
         var worldLayerService = serviceProvider.GetRequiredService<IWorldLayerService>();
         var teleportService = serviceProvider.GetRequiredService<ITeleportService>();
+        var cameraService = serviceProvider.GetRequiredService<ICameraService>();
 
         using var game = new OctarineGameHost(
             logger,
@@ -34,7 +36,8 @@ public static class Program
             collisionService,
             entityService,
             worldLayerService,
-            teleportService);
+            teleportService,
+            cameraService);
         ServiceConfiguration.InitializeEntitySystem(serviceProvider);
 
         game.Window.AllowUserResizing = true;

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using LDtk;
 using Microsoft.Xna.Framework;
 using OctarineCodex.Logging;
@@ -38,12 +37,43 @@ public class MapService : IMapService
     public bool IsLoaded => _currentLevels.Any();
 
     /// <summary>
+    ///     Gets the level containing the specified world position.
+    /// </summary>
+    /// <param name="worldPosition">World coordinates to query</param>
+    /// <returns>The level containing the position, or null if no level contains it</returns>
+    public LDtkLevel? GetLevelAt(Vector2 worldPosition)
+    {
+        return _currentLevels.FirstOrDefault(level =>
+            worldPosition.X >= level.WorldX &&
+            worldPosition.X < level.WorldX + level.PxWid &&
+            worldPosition.Y >= level.WorldY &&
+            worldPosition.Y < level.WorldY + level.PxHei);
+    }
+
+    /// <summary>
+    ///     Calculates the bounding rectangle that encompasses all loaded levels.
+    /// </summary>
+    /// <returns>World bounds rectangle, or empty rectangle if no levels loaded</returns>
+    public RectangleF GetWorldBounds()
+    {
+        if (!_currentLevels.Any())
+            return new RectangleF(0, 0, 0, 0);
+
+        var minX = _currentLevels.Min(l => l.WorldX);
+        var minY = _currentLevels.Min(l => l.WorldY);
+        var maxX = _currentLevels.Max(l => l.WorldX + l.PxWid);
+        var maxY = _currentLevels.Max(l => l.WorldY + l.PxHei);
+
+        return new RectangleF(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    /// <summary>
     ///     Loads levels from an LDtk file according to the specified options.
     /// </summary>
     /// <param name="file">The LDtk file to load from</param>
     /// <param name="options">Loading configuration options</param>
     /// <returns>True if at least one level was loaded successfully</returns>
-    public async Task<bool> LoadAsync(LDtkFile file, MapLoadOptions? options = null)
+    public bool Load(LDtkFile file, MapLoadOptions? options = null)
     {
         options ??= new MapLoadOptions();
 
@@ -52,7 +82,7 @@ public class MapService : IMapService
             _currentLevels.Clear();
 
             // Extract levels from file (handles both world format and legacy format)
-            var availableLevels = await ExtractLevelsFromFile(file);
+            var availableLevels = ExtractLevelsFromFile(file);
 
             if (!availableLevels.Any())
             {
@@ -86,40 +116,9 @@ public class MapService : IMapService
     }
 
     /// <summary>
-    ///     Gets the level containing the specified world position.
-    /// </summary>
-    /// <param name="worldPosition">World coordinates to query</param>
-    /// <returns>The level containing the position, or null if no level contains it</returns>
-    public LDtkLevel? GetLevelAt(Vector2 worldPosition)
-    {
-        return _currentLevels.FirstOrDefault(level =>
-            worldPosition.X >= level.WorldX &&
-            worldPosition.X < level.WorldX + level.PxWid &&
-            worldPosition.Y >= level.WorldY &&
-            worldPosition.Y < level.WorldY + level.PxHei);
-    }
-
-    /// <summary>
-    ///     Calculates the bounding rectangle that encompasses all loaded levels.
-    /// </summary>
-    /// <returns>World bounds rectangle, or empty rectangle if no levels loaded</returns>
-    public RectangleF GetWorldBounds()
-    {
-        if (!_currentLevels.Any())
-            return new RectangleF(0, 0, 0, 0);
-
-        var minX = _currentLevels.Min(l => l.WorldX);
-        var minY = _currentLevels.Min(l => l.WorldY);
-        var maxX = _currentLevels.Max(l => l.WorldX + l.PxWid);
-        var maxY = _currentLevels.Max(l => l.WorldY + l.PxHei);
-
-        return new RectangleF(minX, minY, maxX - minX, maxY - minY);
-    }
-
-    /// <summary>
     ///     Extracts all available levels from an LDtk file, handling both world format and legacy format.
     /// </summary>
-    private async Task<IEnumerable<LDtkLevel>> ExtractLevelsFromFile(LDtkFile file)
+    private IEnumerable<LDtkLevel> ExtractLevelsFromFile(LDtkFile file)
     {
         var levels = new List<LDtkLevel>();
 
@@ -186,9 +185,9 @@ public class MapService : IMapService
         // If LoadAllLevels is false, return only the first level
         if (levelsList.Any())
         {
-            var firstLevel = levelsList.First();
+            var firstLevel = levelsList[0];
             _logger.Debug($"Loading single level: {firstLevel.Identifier}");
-            return new[] { firstLevel };
+            return [firstLevel];
         }
 
         return Enumerable.Empty<LDtkLevel>();

@@ -2,6 +2,7 @@
 
 using System;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace OctarineCodex.Entities.Behaviors;
 
@@ -11,6 +12,8 @@ public interface IBehavior
     void Update(GameTime gameTime);
     void OnMessage<T>(T message) where T : class;
     void Cleanup();
+
+    void Draw(SpriteBatch spriteBatch);
 }
 
 public interface IBehaviorBinding

@@ -28,16 +28,6 @@ public class Camera2D
     /// </summary>
     public Vector2 ViewportSize { get; }
 
-    /// <summary>
-    ///     Updates the camera position to follow the player while respecting room boundaries.
-    /// </summary>
-    /// <param name="player">The player to follow.</param>
-    /// <param name="roomPosition">The position of the current room in world coordinates.</param>
-    /// <param name="roomSize">The size of the current room.</param>
-    public void FollowPlayer(PlayerControl player, Vector2 roomPosition, Vector2 roomSize)
-    {
-        FollowPlayer(player.Position, PlayerControl.Size, roomPosition, roomSize);
-    }
 
     /// <summary>
     ///     Updates the camera position to follow the player while respecting room boundaries.
@@ -80,20 +70,6 @@ public class Camera2D
     public Matrix GetTransformMatrix()
     {
         return Matrix.CreateTranslation(-Position.X, -Position.Y, 0);
-    }
-
-    /// <summary>
-    ///     Determines if the player is near the edge of the current room.
-    /// </summary>
-    /// <param name="player">The player to check.</param>
-    /// <param name="roomPosition">The position of the current room in world coordinates.</param>
-    /// <param name="roomSize">The size of the current room.</param>
-    /// <param name="edgeThreshold">The distance from the edge to consider "near".</param>
-    /// <returns>True if the player is near any room edge, false otherwise.</returns>
-    public static bool IsPlayerNearRoomEdge(PlayerControl player, Vector2 roomPosition, Vector2 roomSize,
-        float edgeThreshold)
-    {
-        return IsPlayerNearRoomEdge(player.Position, PlayerControl.Size, roomPosition, roomSize, edgeThreshold);
     }
 
     /// <summary>

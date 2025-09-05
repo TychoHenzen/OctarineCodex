@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Threading.Tasks;
 using LDtk;
 using Microsoft.Xna.Framework;
 
@@ -32,7 +31,7 @@ public interface IMapService
     /// <param name="file">The LDtk file to load from</param>
     /// <param name="options">Optional loading configuration. If null, loads all levels.</param>
     /// <returns>True if at least one level was loaded successfully</returns>
-    Task<bool> LoadAsync(LDtkFile file, MapLoadOptions? options = null);
+    bool Load(LDtkFile file, MapLoadOptions? options = null);
 
     /// <summary>
     ///     Gets the level containing the specified world position.
