@@ -1,0 +1,11 @@
+﻿using System;
+
+namespace OctarineCodex.Magic;
+
+public class Signature
+{
+    public float GetComponent(EleAspects.Element element)
+    {
+        throw new NotImplementedException();
+    }
+}

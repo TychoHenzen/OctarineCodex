@@ -110,7 +110,7 @@ public class OctarineGameHost : Game
             _renderTarget = new RenderTarget2D(GraphicsDevice, FixedWidth, FixedHeight);
 
             _pixel = new Texture2D(GraphicsDevice, 1, 1, false, SurfaceFormat.Color);
-            _pixel.SetData(new[] { Color.White });
+            _pixel.SetData([Color.White]);
 
             // Initialize unified renderer
             _levelRenderer.Initialize(GraphicsDevice);
@@ -124,21 +124,6 @@ public class OctarineGameHost : Game
                 {
                     _logger.Debug(
                         $"Successfully loaded {_mapService.CurrentLevels.Count} levels from test_level2.ldtk");
-                    await InitializeLoadedWorld();
-                    return;
-                }
-            }
-
-            // Fallback to single level file
-            _logger.Info("test_level2.ldtk not available, falling back to Room1.ldtk");
-            var fallbackFile = await TryLoadLdtkFile("Room1.ldtk");
-            if (fallbackFile != null)
-            {
-                // Load as single level (don't load all levels if it's a multi-level file)
-                var singleLevelOptions = new MapLoadOptions { LoadAllLevels = false };
-                if (await _mapService.LoadAsync(fallbackFile, singleLevelOptions))
-                {
-                    _logger.Debug("Successfully loaded single level from Room1.ldtk");
                     await InitializeLoadedWorld();
                     return;
                 }
@@ -308,6 +293,8 @@ public class OctarineGameHost : Game
         if (_player == null || !_mapService.IsLoaded)
             return;
 
+        _entityService.Update(gameTime);
+
         var dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         var dir = _inputService.GetMovementDirection();
         var delta = Movement.ComputeDelta(dir, PlayerSpeed, dt);
@@ -386,13 +373,16 @@ public class OctarineGameHost : Game
             var currentLayerLevels = _worldLayerService.GetCurrentLayerLevels();
 
             // Render background and collision layers (behind player)
-            _levelRenderer.RenderLevelsBeforePlayer(currentLayerLevels, _spriteBatch, _camera);
+            _levelRenderer.RenderLevelsBeforePlayer(currentLayerLevels, _spriteBatch, _camera, _player.Position);
 
-            // Render player at correct depth
+// Render player at correct depth
             _player.Draw(_spriteBatch, _pixel, Color.Red);
 
-            // Render foreground layers (in front of player)
-            _levelRenderer.RenderLevelsAfterPlayer(currentLayerLevels, _spriteBatch, _camera);
+// Render wall tiles in front of player (Y-sorted)
+            _levelRenderer.RenderLevelsAfterPlayer(currentLayerLevels, _spriteBatch, _camera, _player.Position);
+
+// Render foreground tiles (always on top)
+            _levelRenderer.RenderForegroundLayers(currentLayerLevels, _spriteBatch, _camera, _player.Position);
 
             // Draw teleport indicator if available (only for multi-level worlds)
             if (_mapService.CurrentLevels.Count > 1 &&

@@ -35,6 +35,7 @@ public static class Program
             entityService,
             worldLayerService,
             teleportService);
+        ServiceConfiguration.InitializeEntitySystem(serviceProvider);
 
         game.Window.AllowUserResizing = true;
         game.Run();

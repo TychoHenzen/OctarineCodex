@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System;
+using Microsoft.Extensions.DependencyInjection;
+using OctarineCodex.Entities;
 using OctarineCodex.Input;
 using OctarineCodex.Logging;
 using OctarineCodex.Maps;
@@ -31,10 +33,18 @@ public static class ServiceConfiguration
         services.AddTransient<ILevelRenderer, LevelRenderer>();
 
         services.AddSingleton<ICollisionService, CollisionService>();
-        services.AddSingleton<IEntityService, EntityService>();
         services.AddSingleton<IWorldLayerService, WorldLayerService>();
         services.AddSingleton<ITeleportService, TeleportService>();
 
+        services.AddSingleton<EntityBehaviorRegistry>();
+        services.AddTransient<IEntityService, EntityService>();
+
         return services;
+    }
+
+    public static void InitializeEntitySystem(IServiceProvider services)
+    {
+        var registry = services.GetRequiredService<EntityBehaviorRegistry>();
+        registry.DiscoverBehaviors(); // Auto-discover all [EntityBehavior] classes
     }
 }

@@ -1,18 +1,14 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
-using FluentAssertions;
+﻿using FluentAssertions;
 using LDtk;
 using Microsoft.Xna.Framework;
 using OctarineCodex.Logging;
 using OctarineCodex.Maps;
-using Xunit;
 
 namespace OctarineCodex.Tests.Maps;
 
 /// <summary>
-/// Integration tests for the unified map system, replacing the old SimpleMapSystemIntegrationTests.
-/// Tests the interaction between MapService and LevelRenderer.
+///     Integration tests for the unified map system, replacing the old SimpleMapSystemIntegrationTests.
+///     Tests the interaction between MapService and LevelRenderer.
 /// </summary>
 public class MapSystemIntegrationTests
 {
@@ -40,7 +36,7 @@ public class MapSystemIntegrationTests
         success.Should().BeTrue();
         mapService.IsLoaded.Should().BeTrue();
         mapService.CurrentLevels.Should().HaveCount(1);
-        
+
         var level = mapService.CurrentLevels[0];
         level.Should().NotBeNull();
         level.Identifier.Should().Be("AutoLayer");
@@ -49,7 +45,7 @@ public class MapSystemIntegrationTests
 
         // Test renderer configuration
         renderer.Should().NotBeNull();
-        
+
         // Verify that renderer methods exist and can be called (without GraphicsDevice they'll throw)
         var initializeAction = () => renderer.Initialize(null!);
         initializeAction.Should().Throw<ArgumentNullException>();
@@ -60,12 +56,20 @@ public class MapSystemIntegrationTests
         var loadTilesetsAction = async () => await renderer.LoadTilesetsAsync(null);
         await loadTilesetsAction.Should().ThrowAsync<InvalidOperationException>();
 
-        // Verify rendering methods exist
-        var renderBeforeAction = () => renderer.RenderLevelsBeforePlayer(mapService.CurrentLevels, null!, null!);
+        // Verify depth-sorted rendering methods exist (updated with playerPosition parameter)
+        var testPlayerPosition = Vector2.Zero;
+
+        var renderBeforeAction = () =>
+            renderer.RenderLevelsBeforePlayer(mapService.CurrentLevels, null!, null!, testPlayerPosition);
         renderBeforeAction.Should().NotThrow<ArgumentNullException>();
 
-        var renderAfterAction = () => renderer.RenderLevelsAfterPlayer(mapService.CurrentLevels, null!, null!);
+        var renderAfterAction = () =>
+            renderer.RenderLevelsAfterPlayer(mapService.CurrentLevels, null!, null!, testPlayerPosition);
         renderAfterAction.Should().NotThrow<ArgumentNullException>();
+
+        var renderForegroundAction = () =>
+            renderer.RenderForegroundLayers(mapService.CurrentLevels, null!, null!, testPlayerPosition);
+        renderForegroundAction.Should().NotThrow<ArgumentNullException>();
     }
 
     [Fact]
@@ -77,7 +81,7 @@ public class MapSystemIntegrationTests
 
         // Act - Load same level multiple times with different options
         var file = await Task.Run(() => LDtkFile.FromFile(filePath));
-        
+
         var success1 = await mapService.LoadAsync(file, new MapLoadOptions { LoadAllLevels = false });
         var success2 = await mapService.LoadAsync(file, new MapLoadOptions { LoadAllLevels = true });
         var success3 = await mapService.LoadAsync(file, new MapLoadOptions { SpecificLevelIdentifier = "AutoLayer" });
@@ -142,5 +146,47 @@ public class MapSystemIntegrationTests
         success.Should().BeTrue();
         level.Should().NotBeNull();
         level!.Identifier.Should().Be("AutoLayer");
+    }
+
+    [Fact]
+    public async Task LevelRenderer_DepthSortedRendering_ShouldAcceptPlayerPosition()
+    {
+        // Arrange
+        var renderer = new LevelRenderer(_logger);
+        var mapService = new MapService(_logger);
+        var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
+        var file = await Task.Run(() => LDtkFile.FromFile(filePath));
+
+        var success = await mapService.LoadAsync(file);
+        success.Should().BeTrue();
+
+        renderer.SetLDtkContext(file);
+
+        // Act & Assert - Test that all three rendering passes accept different player positions
+        var testPositions = new[]
+        {
+            Vector2.Zero,
+            new Vector2(100, 100),
+            new Vector2(-50, 200)
+        };
+
+        foreach (var playerPos in testPositions)
+        {
+            // All rendering methods should handle various player positions without throwing
+            var renderBeforeAction = () =>
+                renderer.RenderLevelsBeforePlayer(mapService.CurrentLevels, null!, null!, playerPos);
+            renderBeforeAction.Should()
+                .NotThrow<ArgumentException>($"RenderLevelsBeforePlayer should handle player position {playerPos}");
+
+            var renderAfterAction = () =>
+                renderer.RenderLevelsAfterPlayer(mapService.CurrentLevels, null!, null!, playerPos);
+            renderAfterAction.Should()
+                .NotThrow<ArgumentException>($"RenderLevelsAfterPlayer should handle player position {playerPos}");
+
+            var renderForegroundAction = () =>
+                renderer.RenderForegroundLayers(mapService.CurrentLevels, null!, null!, playerPos);
+            renderForegroundAction.Should()
+                .NotThrow<ArgumentException>($"RenderForegroundLayers should handle player position {playerPos}");
+        }
     }
 }
