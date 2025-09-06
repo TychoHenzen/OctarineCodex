@@ -7,6 +7,8 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using OctarineCodex.Entities.Behaviors;
 
+namespace OctarineCodex.Entities;
+
 public class EntityWrapper : ILDtkEntity
 {
     protected readonly List<IBehavior> _behaviors = new();

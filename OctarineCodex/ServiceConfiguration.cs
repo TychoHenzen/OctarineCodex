@@ -31,7 +31,7 @@ public static class ServiceConfiguration
         services.AddSingleton<IControllerInputProvider, DesktopControllerInputProvider>();
         services.AddSingleton<IInputService, CompositeInputService>();
 
-        services.AddSingleton<ICameraService>(provider =>
+        services.AddSingleton<ICameraService>(_ =>
         {
             var worldViewportSize = new Vector2(FixedWidth, FixedHeight) / WorldRenderScale;
             return new CameraService(worldViewportSize);
@@ -45,7 +45,7 @@ public static class ServiceConfiguration
         services.AddSingleton<ITeleportService, TeleportService>();
 
         services.AddSingleton<EntityBehaviorRegistry>();
-        services.AddTransient<IEntityService, EntityService>();
+        services.AddSingleton<IEntityService, EntityService>();
 
         return services;
     }

@@ -74,7 +74,7 @@ public class OctarineGameHost : Game
         try
         {
             // Try to load primary level file (multi-level support)
-            var primaryFile = TryLoadLdtkFile("Room3.ldtk");
+            var primaryFile = TryLoadLdtkFile(WorldName);
             if (primaryFile != null)
             {
                 _logger.Debug($"Attempting to load {primaryFile.FilePath} (multi-level)");
@@ -204,7 +204,7 @@ public class OctarineGameHost : Game
             if (player != null && _mapService.CurrentLevels.Count > 1)
             {
                 var teleportBehavior = player.GetBehavior<PlayerTeleportBehavior>();
-                if (teleportBehavior?.IsTeleportAvailable(out var targetDepth, out var targetPos) == true)
+                if (teleportBehavior?.IsTeleportAvailable(out _, out _) == true)
                     DrawTeleportIndicator(gameTime, player.Position);
             }
 

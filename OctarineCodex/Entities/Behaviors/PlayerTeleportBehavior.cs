@@ -48,20 +48,28 @@ public class PlayerTeleportBehavior : EntityBehavior
 
         var teleportPressed = _inputService.IsPrimaryActionPressed();
         if (_teleportService.CheckTeleportInteraction(Entity.Position, teleportPressed,
-                out var targetDepth, out var targetPos))
-            if (_worldLayerService.SwitchToLayer(targetDepth))
+                out var targetDepth, out var targetPos) 
+            && _worldLayerService.SwitchToLayer(targetDepth))
+        {
+            _logger.Debug($"Player teleported to world depth {targetDepth}");
+
+            // Update all systems for new layer FIRST
+            var newLayerLevels = _worldLayerService.GetCurrentLayerLevels();
+            _collisionService.InitializeCollision(newLayerLevels);
+            _entityService.UpdateEntitiesForCurrentLayer(newLayerLevels);
+            _teleportService.InitializeTeleports();
+
+            // THEN set the player position after entities are reloaded
+            if (targetPos.HasValue)
             {
-                _logger.Debug($"Player teleported to world depth {targetDepth}");
-
-                if (targetPos.HasValue)
-                    Entity.Position = targetPos.Value;
-
-                // Update all systems for new layer
-                var newLayerLevels = _worldLayerService.GetCurrentLayerLevels();
-                _collisionService.InitializeCollision(newLayerLevels);
-                _entityService.UpdateEntitiesForCurrentLayer(newLayerLevels);
-                _teleportService.InitializeTeleports();
+                var playerEntity = _entityService.GetPlayerEntity();
+                if (playerEntity != null)
+                {
+                    playerEntity.Position = targetPos.Value;
+                    _logger.Debug($"Set player position to teleport target: {targetPos.Value}");
+                }
             }
+        }
     }
 
     /// <summary>

@@ -7,6 +7,8 @@ using LDtk;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 
+namespace OctarineCodex.Json;
+
 public static class NewtonsoftEntityLoader
 {
     public static T[] GetEntitiesWithNewtonsoft<T>(this LDtkLevel level)
@@ -15,23 +17,18 @@ public static class NewtonsoftEntityLoader
         var entities = new List<T>();
         var targetTypeName = typeof(T).Name;
 
-        // Access public LayerInstances property
         if (level.LayerInstances == null) return entities.ToArray();
 
         foreach (var layer in level.LayerInstances)
         {
-            // Check if this is an entities layer
-            if (layer._Identifier != "GameEntities" && layer._Identifier != "Triggerables") continue;
-
-            // Access public EntityInstances property
             foreach (var entityInstance in layer.EntityInstances)
             {
-                // Check if this entity matches our target type
                 if (entityInstance._Identifier != targetTypeName) continue;
 
                 try
                 {
-                    var entity = CreateEntityFromPublicApi<T>(entityInstance);
+                    // Pass level context for world coordinate conversion
+                    var entity = CreateEntityFromPublicApi<T>(entityInstance, level);
                     entities.Add(entity);
                 }
                 catch (Exception ex)
@@ -44,16 +41,21 @@ public static class NewtonsoftEntityLoader
         return entities.ToArray();
     }
 
-    private static T CreateEntityFromPublicApi<T>(EntityInstance entityInstance)
+    private static T CreateEntityFromPublicApi<T>(EntityInstance entityInstance, LDtkLevel level)
         where T : new()
     {
         T entity = new();
 
-        // Set base ILDtkEntity properties using public API
+        // Convert to world coordinates by adding level offset
+        var worldPosition = new Vector2(
+            level.WorldX + entityInstance.Px.X,
+            level.WorldY + entityInstance.Px.Y
+        );
+
         SetProperty(entity, nameof(ILDtkEntity.Uid), entityInstance.DefUid);
         SetProperty(entity, nameof(ILDtkEntity.Iid), entityInstance.Iid);
         SetProperty(entity, nameof(ILDtkEntity.Identifier), entityInstance._Identifier);
-        SetProperty(entity, nameof(ILDtkEntity.Position), new Vector2(entityInstance.Px.X, entityInstance.Px.Y));
+        SetProperty(entity, nameof(ILDtkEntity.Position), worldPosition); // Now uses world coordinates
         SetProperty(entity, nameof(ILDtkEntity.Pivot), entityInstance._Pivot);
         SetProperty(entity, nameof(ILDtkEntity.Size), new Vector2(entityInstance.Width, entityInstance.Height));
         SetProperty(entity, nameof(ILDtkEntity.SmartColor), entityInstance._SmartColor);
@@ -66,9 +68,7 @@ public static class NewtonsoftEntityLoader
             SetProperty(entity, nameof(ILDtkEntity.Tile), rect);
         }
 
-        // Parse custom fields using Newtonsoft.Json
         ParseCustomFields(entity, entityInstance.FieldInstances);
-
         return entity;
     }
 
