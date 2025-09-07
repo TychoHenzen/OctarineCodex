@@ -8,6 +8,7 @@ namespace OctarineCodex.Maps;
 ///     Unified map service interface that handles loading and managing LDtk levels.
 ///     Supports both single-level and multi-level scenarios through a consistent API.
 /// </summary>
+[Service<MapService>]
 public interface IMapService
 {
     /// <summary>

@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 
 namespace OctarineCodex.Maps;
 
+[Service<WorldLayerService>]
 public interface IWorldLayerService
 {
     int CurrentWorldDepth { get; }

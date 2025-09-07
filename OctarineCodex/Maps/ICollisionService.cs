@@ -7,6 +7,7 @@ namespace OctarineCodex.Maps;
 /// <summary>
 ///     Collision detection service using LDtk IntGrid data.
 /// </summary>
+[Service<CollisionService>]
 public interface ICollisionService
 {
     /// <summary>

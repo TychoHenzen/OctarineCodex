@@ -2,6 +2,7 @@
 
 namespace OctarineCodex.Maps;
 
+[Service<TeleportService>]
 public interface ITeleportService
 {
     void InitializeTeleports();

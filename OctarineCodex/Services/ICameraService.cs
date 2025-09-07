@@ -6,6 +6,7 @@ namespace OctarineCodex.Services;
 /// <summary>
 ///     Service for managing camera operations that behaviors can interact with
 /// </summary>
+[Service<CameraService>]
 public interface ICameraService
 {
     /// <summary>

@@ -4,8 +4,8 @@ using Microsoft.Xna.Framework.Input;
 namespace OctarineCodex.Input;
 
 /// <summary>
-/// DesktopGL implementation of IKeyboardInputProvider.
-/// Uses continuous polling via Keyboard.GetState() for smooth game input.
+///     DesktopGL implementation of IKeyboardInputProvider.
+///     Uses continuous polling via Keyboard.GetState() for smooth game input.
 /// </summary>
 public sealed class DesktopKeyboardInputProvider : IKeyboardInputProvider
 {
@@ -18,7 +18,13 @@ public sealed class DesktopKeyboardInputProvider : IKeyboardInputProvider
         _currentState = Keyboard.GetState();
     }
 
-    public bool IsKeyDown(Keys key) => _currentState.IsKeyDown(key);
-    
-    public bool IsKeyPressed(Keys key) => _currentState.IsKeyDown(key) && !_previousState.IsKeyDown(key);
+    public bool IsKeyDown(Keys key)
+    {
+        return _currentState.IsKeyDown(key);
+    }
+
+    public bool IsKeyPressed(Keys key)
+    {
+        return _currentState.IsKeyDown(key) && !_previousState.IsKeyDown(key);
+    }
 }

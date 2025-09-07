@@ -7,6 +7,7 @@ using OctarineCodex.Player;
 
 namespace OctarineCodex.Maps;
 
+[Service<LevelRenderer>]
 public interface ILevelRenderer
 {
     void Initialize(GraphicsDevice graphicsDevice);

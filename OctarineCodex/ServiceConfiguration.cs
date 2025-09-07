@@ -4,9 +4,6 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
 using OctarineCodex.Entities;
-using OctarineCodex.Input;
-using OctarineCodex.Logging;
-using OctarineCodex.Maps;
 using OctarineCodex.Messaging;
 using OctarineCodex.Services;
 using static OctarineCodex.OctarineConstants;
@@ -15,49 +12,37 @@ namespace OctarineCodex;
 
 /// <summary>
 ///     Configures dependency injection services for the application.
-///     Provides a composition root following SOLID principles.
+///     Uses automatic service discovery via reflection for most services.
 /// </summary>
 public static class ServiceConfiguration
 {
     /// <summary>
     ///     Registers all application services with the DI container.
+    ///     Most services are auto-discovered via [Service&lt;TImplementation&gt;] attributes.
     /// </summary>
     /// <param name="services">The service collection to register services with.</param>
     /// <returns>The service collection for method chaining.</returns>
     public static IServiceCollection AddOctarineServices(this IServiceCollection services)
     {
-        // Logging services
-        services.AddSingleton<ILoggingService, LoggingService>();
+        // Auto-register all services marked with [Service<TImplementation>] attributes
+        services.AddServicesFromAssembly();
 
-        // Messaging system services  
-        services.AddMessaging(); // Now properly registers IMessageBus
+        // Manual registration for services that need custom configuration
+        services.AddCustomServices();
 
-        // Input system services
-        services.AddSingleton<IKeyboardInputProvider, DesktopKeyboardInputProvider>();
-        services.AddSingleton<IControllerInputProvider, DesktopControllerInputProvider>();
-        services.AddSingleton<IInputService, CompositeInputService>();
+        return services;
+    }
 
-        // Camera services
-        services.AddSingleton<ICameraService>(_ =>
-        {
-            var worldViewportSize = new Vector2(FixedWidth, FixedHeight) / WorldRenderScale;
-            return new CameraService(worldViewportSize);
-        });
-
-        // Map and level services
-        services.AddSingleton<IMapService, MapService>();
-        services.AddSingleton<ILevelRenderer, LevelRenderer>();
-        services.AddSingleton<ICollisionService, CollisionService>();
-        services.AddSingleton<IWorldLayerService, WorldLayerService>();
-        services.AddSingleton<ITeleportService, TeleportService>();
-
-        // Entity system services
-        services.AddSingleton<EntityBehaviorRegistry>();
-        services.AddSingleton<IEntityService, EntityService>();
-        services.AddSingleton<IEntityWrapperFactory, EntityWrapperFactory>();
-
-        // Game host (singleton - single instance needed)
+    /// <summary>
+    ///     Register services that require custom configuration and cannot be auto-discovered
+    /// </summary>
+    private static IServiceCollection AddCustomServices(this IServiceCollection services)
+    {
+        // Game host
         services.AddSingleton<OctarineGameHost>();
+
+        // Entity behavior registry (no interface, just concrete class)
+        services.AddSingleton<EntityBehaviorRegistry>();
 
         return services;
     }

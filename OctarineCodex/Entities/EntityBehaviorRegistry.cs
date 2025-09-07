@@ -13,7 +13,7 @@ namespace OctarineCodex.Entities;
 public class EntityBehaviorRegistry
 {
     private readonly Dictionary<string, bool> _applicabilityCache = new();
-    private readonly List<BehaviorDescriptor> _behaviors = new();
+    private readonly List<BehaviorDescriptor> _behaviors = [];
     private readonly ILoggingService _logger;
     private readonly IServiceProvider _services;
 
@@ -23,12 +23,12 @@ public class EntityBehaviorRegistry
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public void DiscoverBehaviors(Assembly assembly = null)
+    public void DiscoverBehaviors()
     {
-        assembly ??= Assembly.GetExecutingAssembly();
+        var assembly = Assembly.GetExecutingAssembly();
 
         var behaviorTypes = assembly.GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract &&
+            .Where(t => t is { IsClass: true, IsAbstract: false } &&
                         t.IsSubclassOf(typeof(EntityBehavior)) &&
                         t.GetCustomAttribute<EntityBehaviorAttribute>() != null)
             .ToArray();

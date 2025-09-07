@@ -69,6 +69,7 @@ public class MessageOptions
 /// <summary>
 ///     Central message bus for inter-entity and global communication
 /// </summary>
+[Service<MessageBus>]
 public interface IMessageBus
 {
     /// <summary>

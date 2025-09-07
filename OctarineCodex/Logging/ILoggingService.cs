@@ -4,13 +4,14 @@ using System.Runtime.CompilerServices;
 namespace OctarineCodex.Logging;
 
 /// <summary>
-/// Provides logging functionality with automatic caller information capture.
-/// Supports multiple log levels and file-based output with rotation.
+///     Provides logging functionality with automatic caller information capture.
+///     Supports multiple log levels and file-based output with rotation.
 /// </summary>
+[Service<LoggingService>]
 public interface ILoggingService
 {
     /// <summary>
-    /// Logs a debug message with caller information.
+    ///     Logs a debug message with caller information.
     /// </summary>
     /// <param name="message">The message to log.</param>
     /// <param name="memberName">Automatically captured caller member name.</param>
@@ -22,7 +23,7 @@ public interface ILoggingService
         [CallerLineNumber] int sourceLineNumber = 0);
 
     /// <summary>
-    /// Logs an informational message with caller information.
+    ///     Logs an informational message with caller information.
     /// </summary>
     /// <param name="message">The message to log.</param>
     /// <param name="memberName">Automatically captured caller member name.</param>
@@ -34,7 +35,7 @@ public interface ILoggingService
         [CallerLineNumber] int sourceLineNumber = 0);
 
     /// <summary>
-    /// Logs a warning message with caller information.
+    ///     Logs a warning message with caller information.
     /// </summary>
     /// <param name="message">The message to log.</param>
     /// <param name="memberName">Automatically captured caller member name.</param>
@@ -46,7 +47,7 @@ public interface ILoggingService
         [CallerLineNumber] int sourceLineNumber = 0);
 
     /// <summary>
-    /// Logs an error message with caller information.
+    ///     Logs an error message with caller information.
     /// </summary>
     /// <param name="message">The message to log.</param>
     /// <param name="memberName">Automatically captured caller member name.</param>
@@ -58,7 +59,7 @@ public interface ILoggingService
         [CallerLineNumber] int sourceLineNumber = 0);
 
     /// <summary>
-    /// Logs an exception with caller information.
+    ///     Logs an exception with caller information.
     /// </summary>
     /// <param name="exception">The exception to log.</param>
     /// <param name="message">Optional additional message.</param>

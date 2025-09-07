@@ -8,6 +8,7 @@ namespace OctarineCodex.Entities;
 ///     Factory for creating EntityWrapper instances with proper dependency injection.
 ///     Abstracts the creation process to allow for easier testing and maintainability.
 /// </summary>
+[Service<EntityWrapperFactory>]
 public interface IEntityWrapperFactory
 {
     /// <summary>

@@ -8,9 +8,9 @@ namespace OctarineCodex.Services;
 /// </summary>
 public class CameraService : ICameraService
 {
-    public CameraService(Vector2 viewportSize)
+    public CameraService()
     {
-        Camera = new Camera2D(viewportSize);
+        Camera = new Camera2D(new Vector2(OctarineConstants.FixedWidth, OctarineConstants.FixedHeight) / OctarineConstants.WorldRenderScale);
     }
 
     public Camera2D Camera { get; }

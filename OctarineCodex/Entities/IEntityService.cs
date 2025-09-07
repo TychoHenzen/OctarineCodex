@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace OctarineCodex.Entities;
 
+[Service<EntityService>]
 public interface IEntityService
 {
     void InitializeEntities(IEnumerable<LDtkLevel> levels);
