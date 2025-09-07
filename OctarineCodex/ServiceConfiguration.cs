@@ -1,10 +1,13 @@
-﻿using System;
+﻿// Updated OctarineCodex/ServiceConfiguration.cs
+
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
 using OctarineCodex.Entities;
 using OctarineCodex.Input;
 using OctarineCodex.Logging;
 using OctarineCodex.Maps;
+using OctarineCodex.Messaging;
 using OctarineCodex.Services;
 using static OctarineCodex.OctarineConstants;
 
@@ -25,6 +28,9 @@ public static class ServiceConfiguration
     {
         // Logging services
         services.AddSingleton<ILoggingService, LoggingService>();
+
+        // Messaging system services  
+        services.AddMessaging();
 
         // Input system services
         services.AddSingleton<IKeyboardInputProvider, DesktopKeyboardInputProvider>();
@@ -54,5 +60,8 @@ public static class ServiceConfiguration
     {
         var registry = services.GetRequiredService<EntityBehaviorRegistry>();
         registry.DiscoverBehaviors(); // Auto-discover all [EntityBehavior] classes
+
+        // Initialize messaging system
+        MessagingExtensions.InitializeMessageHandlers(services);
     }
 }

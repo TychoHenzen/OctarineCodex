@@ -43,12 +43,8 @@ public class TeleportService : ITeleportService
                     var destination = entity.GetField<EntityReference>("destination");
                     if (destination != null)
                     {
-                        _logger.Debug(
-                            $"Processing teleport {entity.EntityType} at {entity.Position} with destination {destination.EntityIid}");
-
                         var destinationInfo = ResolveDestination(destination);
                         if (destinationInfo.HasValue)
-                        {
                             _teleports.Add(new TeleportData
                             {
                                 Position = entity.Position,
@@ -56,14 +52,8 @@ public class TeleportService : ITeleportService
                                 TargetWorldDepth = destinationInfo.Value.WorldDepth,
                                 TargetPosition = destinationInfo.Value.Position
                             });
-
-                            _logger.Debug(
-                                $"Successfully added teleport at {entity.Position} -> {destinationInfo.Value.Position} (depth {destinationInfo.Value.WorldDepth})");
-                        }
                         else
-                        {
                             _logger.Warn($"Could not resolve destination for teleport at {entity.Position}");
-                        }
                     }
                     else
                     {
@@ -93,15 +83,10 @@ public class TeleportService : ITeleportService
         // Check if player is in range of any teleport
         var inRange = CheckTeleportProximity(playerPosition, out targetWorldDepth, out targetPosition);
 
-        if (inRange)
+        if (inRange && inputPressed)
         {
-            _logger.Debug($"Player in teleport range at {playerPosition}. Input pressed: {inputPressed}");
-
-            if (inputPressed)
-            {
-                _logger.Debug($"Player activated teleport to world depth {targetWorldDepth} at {targetPosition}");
-                return true;
-            }
+            _logger.Debug($"Player activated teleport to world depth {targetWorldDepth} at {targetPosition}");
+            return true;
         }
 
         targetWorldDepth = _worldLayerService.CurrentWorldDepth;
@@ -163,16 +148,11 @@ public class TeleportService : ITeleportService
             var distance = Vector2.Distance(playerPosition, teleport.Position);
 
             // Debug log every few frames to see proximity
-            if (distance <= interactionDistance * 2) // Log when getting close (twice the interaction distance)
-                _logger.Debug(
-                    $"Player at {playerPosition} is {distance:F1} pixels from teleport at {teleport.Position} (interaction: {interactionDistance})");
 
             if (distance <= interactionDistance)
             {
                 targetWorldDepth = teleport.TargetWorldDepth;
                 targetPosition = teleport.TargetPosition;
-                _logger.Debug(
-                    $"Player in teleport range! Distance: {distance:F1}, Target: depth {targetWorldDepth} at {targetPosition}");
                 return true;
             }
         }

@@ -1,7 +1,9 @@
 ﻿// OctarineCodex/Entities/Behaviors/PlayerTeleportBehavior.cs
 
 using System;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
+using OctarineCodex.Entities.Messages;
 using OctarineCodex.Input;
 using OctarineCodex.Logging;
 using OctarineCodex.Maps;
@@ -31,13 +33,13 @@ public class PlayerTeleportBehavior : EntityBehavior
     {
         base.Initialize(entity, services);
 
-        _inputService = (IInputService)services.GetService(typeof(IInputService));
-        _teleportService = (ITeleportService)services.GetService(typeof(ITeleportService));
-        _worldLayerService = (IWorldLayerService)services.GetService(typeof(IWorldLayerService));
-        _collisionService = (ICollisionService)services.GetService(typeof(ICollisionService));
-        _entityService = (IEntityService)services.GetService(typeof(IEntityService));
-        _logger = (ILoggingService)services.GetService(typeof(ILoggingService));
-        _mapService = (IMapService)services.GetService(typeof(IMapService));
+        _inputService = services.GetRequiredService<IInputService>();
+        _teleportService = services.GetRequiredService<ITeleportService>();
+        _worldLayerService = services.GetRequiredService<IWorldLayerService>();
+        _collisionService = services.GetRequiredService<ICollisionService>();
+        _entityService = services.GetRequiredService<IEntityService>();
+        _logger = services.GetRequiredService<ILoggingService>();
+        _mapService = services.GetRequiredService<IMapService>();
     }
 
     public override void Update(GameTime gameTime)
@@ -48,7 +50,7 @@ public class PlayerTeleportBehavior : EntityBehavior
 
         var teleportPressed = _inputService.IsPrimaryActionPressed();
         if (_teleportService.CheckTeleportInteraction(Entity.Position, teleportPressed,
-                out var targetDepth, out var targetPos) 
+                out var targetDepth, out var targetPos)
             && _worldLayerService.SwitchToLayer(targetDepth))
         {
             _logger.Debug($"Player teleported to world depth {targetDepth}");
@@ -62,11 +64,18 @@ public class PlayerTeleportBehavior : EntityBehavior
             // THEN set the player position after entities are reloaded
             if (targetPos.HasValue)
             {
+                var previousPosition = Entity.Position;
                 var playerEntity = _entityService.GetPlayerEntity();
                 if (playerEntity != null)
                 {
                     playerEntity.Position = targetPos.Value;
                     _logger.Debug($"Set player position to teleport target: {targetPos.Value}");
+
+                    // Send global PlayerMovedMessage so camera and other systems get notified
+                    var teleportDelta = targetPos.Value - previousPosition;
+                    Entity.SendGlobalMessage(new PlayerMovedMessage(targetPos.Value, teleportDelta));
+
+                    _logger.Debug($"Sent PlayerMovedMessage for teleport: {previousPosition} -> {targetPos.Value}");
                 }
             }
         }

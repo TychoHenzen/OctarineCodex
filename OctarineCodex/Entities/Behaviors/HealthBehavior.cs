@@ -1,4 +1,6 @@
-﻿using System;
+﻿// OctarineCodex/Entities/Behaviors/HealthBehavior.cs
+
+using System;
 using Microsoft.Xna.Framework;
 using OctarineCodex.Entities.Messages;
 
@@ -33,25 +35,30 @@ public class HealthBehavior : EntityBehavior
         switch (message)
         {
             case DamageMessage damage:
-                TakeDamage(damage.Amount);
+                TakeDamage(damage.Amount, damage.DamageSource);
                 break;
             case HealMessage heal:
-                Heal(heal.Amount);
+                Heal(heal.Amount, heal.HealSource);
                 break;
         }
     }
 
-    private void TakeDamage(int amount)
+    private void TakeDamage(int amount, string? damageSource = null)
     {
+        var previousHealth = _currentHealth;
         _currentHealth = Math.Max(0, _currentHealth - amount);
-        Entity.SendMessage(new HealthChangedMessage(_currentHealth, _maxHealth));
 
-        if (_currentHealth <= 0) Entity.SendMessage(new EntityDeathMessage());
+        // Send health changed message locally for UI updates
+        Entity.SendMessage(new HealthChangedMessage(_currentHealth, _maxHealth, previousHealth));
+
+        // Send death message globally so other systems can react (loot, scoring, etc.)
+        if (_currentHealth <= 0) Entity.SendGlobalMessage(new EntityDeathMessage(Entity.Position, damageSource));
     }
 
-    private void Heal(int amount)
+    private void Heal(int amount, string? healSource = null)
     {
+        var previousHealth = _currentHealth;
         _currentHealth = Math.Min(_maxHealth, _currentHealth + amount);
-        Entity.SendMessage(new HealthChangedMessage(_currentHealth, _maxHealth));
+        Entity.SendMessage(new HealthChangedMessage(_currentHealth, _maxHealth, previousHealth));
     }
 }

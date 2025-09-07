@@ -1,6 +1,7 @@
 ﻿// OctarineCodex/Entities/Behaviors/PlayerMovementBehavior.cs
 
 using System;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
 using OctarineCodex.Entities.Messages;
 using OctarineCodex.Input;
@@ -15,7 +16,6 @@ namespace OctarineCodex.Entities.Behaviors;
 public class PlayerMovementBehavior : EntityBehavior
 {
     private ICollisionService _collisionService;
-
     private IInputService _inputService;
     private IMapService _mapService;
 
@@ -28,9 +28,9 @@ public class PlayerMovementBehavior : EntityBehavior
     {
         base.Initialize(entity, services);
 
-        _inputService = (IInputService)services.GetService(typeof(IInputService));
-        _collisionService = (ICollisionService)services.GetService(typeof(ICollisionService));
-        _mapService = (IMapService)services.GetService(typeof(IMapService));
+        _inputService = services.GetRequiredService<IInputService>();
+        _collisionService = services.GetRequiredService<ICollisionService>();
+        _mapService = services.GetRequiredService<IMapService>();
     }
 
     public override void Update(GameTime gameTime)
@@ -45,6 +45,7 @@ public class PlayerMovementBehavior : EntityBehavior
 
         // Calculate new position
         var newPos = Entity.Position + delta;
+        var previousPos = Entity.Position;
 
         // Handle collision resolution
         Vector2 correctedPos;
@@ -67,11 +68,16 @@ public class PlayerMovementBehavior : EntityBehavior
         // Update entity position
         Entity.Position = correctedPos;
 
-        // Send movement message for other behaviors to react
-        if (correctedPos != Entity.Position + delta)
+        // Send movement messages
+        if (correctedPos != newPos)
+            // Movement was blocked - send local message for player feedback
             Entity.SendMessage(new MovementBlockedMessage(dir, delta));
-        else
-            Entity.SendMessage(new PlayerMovedMessage(Entity.Position, correctedPos));
+        if (correctedPos != previousPos)
+        {
+            // Successful movement - send global message so camera and other systems can react
+            var actualDelta = correctedPos - previousPos;
+            Entity.SendGlobalMessage(new PlayerMovedMessage(correctedPos, actualDelta));
+        }
     }
 
     public static Vector2 ComputeDelta(Vector2 direction, float speed, float dt)

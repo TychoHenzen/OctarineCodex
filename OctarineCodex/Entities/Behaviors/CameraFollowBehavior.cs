@@ -1,20 +1,33 @@
-﻿using System;
+﻿// OctarineCodex/Entities/Behaviors/CameraFollowBehavior.cs
+
+using System;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
+using OctarineCodex.Entities.Messages;
 using OctarineCodex.Maps;
+using OctarineCodex.Messaging;
 using OctarineCodex.Services;
 
 namespace OctarineCodex.Entities.Behaviors;
 
 /// <summary>
-///     Makes camera follow player using existing Camera2D logic
+///     Makes camera follow player via message-based communication for better decoupling
 /// </summary>
 [EntityBehavior(EntityType = "Player", Priority = 900)]
-public class CameraFollowBehavior : EntityBehavior
+public class CameraFollowBehavior : EntityBehavior, IMessageHandler<PlayerMovedMessage>
 {
     private ICameraService _cameraService;
     private IMapService _mapService;
     private IWorldLayerService _worldLayerService;
+
+    /// <summary>
+    ///     Handle player movement messages to update camera position
+    /// </summary>
+    public void HandleMessage(PlayerMovedMessage message, string? senderId = null)
+    {
+        UpdateCameraPosition(message.NewPosition);
+    }
 
     public override bool ShouldApplyTo(EntityWrapper entity)
     {
@@ -25,12 +38,21 @@ public class CameraFollowBehavior : EntityBehavior
     {
         base.Initialize(entity, services);
 
-        _cameraService = (ICameraService)services.GetService(typeof(ICameraService));
-        _mapService = (IMapService)services.GetService(typeof(IMapService));
-        _worldLayerService = (IWorldLayerService)services.GetService(typeof(IWorldLayerService));
+        _cameraService = services.GetRequiredService<ICameraService>();
+        _mapService = services.GetRequiredService<IMapService>();
+        _worldLayerService = services.GetRequiredService<IWorldLayerService>();
+
+        // Initial camera positioning
+        UpdateCameraPosition(Entity.Position);
     }
 
     public override void Update(GameTime gameTime)
+    {
+        // Camera now updates via PlayerMovedMessage instead of polling position
+        // Keep this method for potential future camera shake, smoothing, or other effects
+    }
+
+    private void UpdateCameraPosition(Vector2 playerPosition)
     {
         if (_cameraService == null || _mapService == null) return;
 
@@ -60,6 +82,6 @@ public class CameraFollowBehavior : EntityBehavior
         }
 
         // Use existing Camera2D follow logic
-        _cameraService.FollowTarget(Entity.Position, OctarineConstants.PlayerSize, roomPosition, roomSize);
+        _cameraService.FollowTarget(playerPosition, OctarineConstants.PlayerSize, roomPosition, roomSize);
     }
 }

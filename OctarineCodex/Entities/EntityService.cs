@@ -1,4 +1,4 @@
-﻿// OctarineCodex/Entities/EntityService.cs
+﻿// Updated OctarineCodex/Entities/EntityService.cs
 
 using System;
 using System.Collections.Generic;
@@ -6,19 +6,22 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using LDtk;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using OctarineCodex.Json;
 using OctarineCodex.Logging;
 using OctarineCodex.Maps;
+using OctarineCodex.Messaging;
 
 namespace OctarineCodex.Entities;
 
-public class EntityService : IEntityService
+public class EntityService : IEntityService, IDisposable
 {
     private readonly List<EntityWrapper> _allEntities = new();
     private readonly EntityBehaviorRegistry _behaviorRegistry;
     private readonly ILoggingService _logger;
+    private readonly IMessageBus? _messageBus;
     private readonly IServiceProvider _services;
 
     public EntityService(EntityBehaviorRegistry behaviorRegistry, IServiceProvider services, ILoggingService logger)
@@ -26,6 +29,7 @@ public class EntityService : IEntityService
         _behaviorRegistry = behaviorRegistry ?? throw new ArgumentNullException(nameof(behaviorRegistry));
         _services = services ?? throw new ArgumentNullException(nameof(services));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _messageBus = services.GetRequiredService<IMessageBus>();
     }
 
     public void InitializeEntities(IEnumerable<LDtkLevel> levels)
@@ -33,7 +37,8 @@ public class EntityService : IEntityService
         var levelCount = levels.Count();
         _logger.Debug($"Initializing entities from {levelCount} levels");
 
-        _allEntities.Clear();
+        // Clear existing entities and message bus registrations
+        DisposeAllEntities();
 
         foreach (var level in levels)
         {
@@ -58,6 +63,10 @@ public class EntityService : IEntityService
 
         // Preserve the current player entity
         var currentPlayer = GetPlayerEntity();
+
+        // Dispose non-player entities
+        var entitiesToDispose = _allEntities.Where(e => e.EntityType != "Player").ToList();
+        foreach (var entity in entitiesToDispose) entity.Dispose();
 
         // Clear and reload other entities
         _allEntities.Clear();
@@ -93,11 +102,13 @@ public class EntityService : IEntityService
 
     public void Update(GameTime gameTime)
     {
+        // Process queued messages first
+        _messageBus?.ProcessQueuedMessages();
+
         // Create snapshot to prevent concurrent modification during teleport
         var entitySnapshot = _allEntities.ToList();
         foreach (var entity in entitySnapshot) entity.Update(gameTime);
     }
-
 
     public void Draw(SpriteBatch spriteBatch)
     {
@@ -151,6 +162,21 @@ public class EntityService : IEntityService
     public void ApplyBehaviorsToEntity(EntityWrapper entity)
     {
         _behaviorRegistry.ApplyBehaviors(entity);
+    }
+
+    /// <summary>
+    ///     Cleanup all entities and messaging when shutting down
+    /// </summary>
+    public void Dispose()
+    {
+        DisposeAllEntities();
+        _messageBus?.Clear();
+    }
+
+    private void DisposeAllEntities()
+    {
+        foreach (var entity in _allEntities) entity.Dispose();
+        _allEntities.Clear();
     }
 
     private IEnumerable<ILDtkEntity> GetAllEntitiesFromLevel(LDtkLevel level)
