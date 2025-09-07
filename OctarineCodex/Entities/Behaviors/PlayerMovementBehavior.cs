@@ -1,7 +1,6 @@
 ﻿// OctarineCodex/Entities/Behaviors/PlayerMovementBehavior.cs
 
 using System;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
 using OctarineCodex.Entities.Messages;
 using OctarineCodex.Input;
@@ -15,28 +14,25 @@ namespace OctarineCodex.Entities.Behaviors;
 [EntityBehavior(EntityType = "Player", Priority = 1000)]
 public class PlayerMovementBehavior : EntityBehavior
 {
-    private ICollisionService _collisionService;
-    private IInputService _inputService;
-    private IMapService _mapService;
+    private readonly ICollisionService _collisionService;
+    private readonly IInputService _inputService;
+    private readonly IMapService _mapService;
+
+    public PlayerMovementBehavior(IInputService inputService, ICollisionService collisionService,
+        IMapService mapService)
+    {
+        _inputService = inputService ?? throw new ArgumentNullException(nameof(inputService));
+        _collisionService = collisionService ?? throw new ArgumentNullException(nameof(collisionService));
+        _mapService = mapService ?? throw new ArgumentNullException(nameof(mapService));
+    }
 
     public override bool ShouldApplyTo(EntityWrapper entity)
     {
         return HasEntityType(entity, "Player");
     }
 
-    public override void Initialize(EntityWrapper entity, IServiceProvider services)
-    {
-        base.Initialize(entity, services);
-
-        _inputService = services.GetRequiredService<IInputService>();
-        _collisionService = services.GetRequiredService<ICollisionService>();
-        _mapService = services.GetRequiredService<IMapService>();
-    }
-
     public override void Update(GameTime gameTime)
     {
-        if (_inputService == null) return;
-
         var dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         var dir = _inputService.GetMovementDirection();
         var delta = ComputeDelta(dir, OctarineConstants.PlayerSpeed, dt);
@@ -70,11 +66,9 @@ public class PlayerMovementBehavior : EntityBehavior
 
         // Send movement messages
         if (correctedPos != newPos)
-            // Movement was blocked - send local message for player feedback
             Entity.SendMessage(new MovementBlockedMessage(dir, delta));
         if (correctedPos != previousPos)
         {
-            // Successful movement - send global message so camera and other systems can react
             var actualDelta = correctedPos - previousPos;
             Entity.SendGlobalMessage(new PlayerMovedMessage(correctedPos, actualDelta));
         }

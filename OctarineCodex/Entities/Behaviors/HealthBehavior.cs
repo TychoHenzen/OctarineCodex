@@ -15,12 +15,12 @@ public class HealthBehavior : EntityBehavior
     public override bool ShouldApplyTo(EntityWrapper entity)
     {
         // Apply to any entity with a "life" field that's greater than 0
-        return HasField<int>("life", life => life > 0);
+        return entity.TryGetField<int>("life", out var life) && life > 0;
     }
 
-    public override void Initialize(EntityWrapper entity, IServiceProvider services)
+    public override void Initialize(EntityWrapper entity)
     {
-        base.Initialize(entity, services);
+        base.Initialize(entity);
         _maxHealth = Entity.GetField<int>("life");
         _currentHealth = _maxHealth;
     }
@@ -52,7 +52,8 @@ public class HealthBehavior : EntityBehavior
         Entity.SendMessage(new HealthChangedMessage(_currentHealth, _maxHealth, previousHealth));
 
         // Send death message globally so other systems can react (loot, scoring, etc.)
-        if (_currentHealth <= 0) Entity.SendGlobalMessage(new EntityDeathMessage(Entity.Position, damageSource));
+        if (_currentHealth <= 0)
+            Entity.SendGlobalMessage(new EntityDeathMessage(Entity.Position, damageSource));
     }
 
     private void Heal(int amount, string? healSource = null)

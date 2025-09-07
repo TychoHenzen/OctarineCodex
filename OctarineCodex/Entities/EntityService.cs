@@ -6,12 +6,10 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using LDtk;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using OctarineCodex.Json;
 using OctarineCodex.Logging;
-using OctarineCodex.Maps;
 using OctarineCodex.Messaging;
 
 namespace OctarineCodex.Entities;
@@ -20,16 +18,30 @@ public class EntityService : IEntityService, IDisposable
 {
     private readonly List<EntityWrapper> _allEntities = new();
     private readonly EntityBehaviorRegistry _behaviorRegistry;
+    private readonly IEntityWrapperFactory _entityWrapperFactory;
     private readonly ILoggingService _logger;
     private readonly IMessageBus? _messageBus;
     private readonly IServiceProvider _services;
 
-    public EntityService(EntityBehaviorRegistry behaviorRegistry, IServiceProvider services, ILoggingService logger)
+
+    public EntityService(EntityBehaviorRegistry behaviorRegistry, IServiceProvider services, ILoggingService logger,
+        IMessageBus messageBus,
+        IEntityWrapperFactory entityWrapperFactory)
     {
         _behaviorRegistry = behaviorRegistry ?? throw new ArgumentNullException(nameof(behaviorRegistry));
         _services = services ?? throw new ArgumentNullException(nameof(services));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _messageBus = services.GetRequiredService<IMessageBus>();
+        _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
+        _entityWrapperFactory = entityWrapperFactory ?? throw new ArgumentNullException(nameof(entityWrapperFactory));
+    }
+
+    /// <summary>
+    ///     Cleanup all entities and messaging when shutting down
+    /// </summary>
+    public void Dispose()
+    {
+        DisposeAllEntities();
+        _messageBus?.Clear();
     }
 
     public void InitializeEntities(IEnumerable<LDtkLevel> levels)
@@ -45,7 +57,7 @@ public class EntityService : IEntityService, IDisposable
             var entities = GetAllEntitiesFromLevel(level);
             foreach (var entity in entities)
             {
-                var wrapper = new EntityWrapper(entity, _services);
+                var wrapper = _entityWrapperFactory.CreateWrapper(entity);
                 _behaviorRegistry.ApplyBehaviors(wrapper);
                 _allEntities.Add(wrapper);
 
@@ -55,6 +67,7 @@ public class EntityService : IEntityService, IDisposable
 
         _logger.Debug($"Initialized {_allEntities.Count} total entities");
     }
+
 
     public void UpdateEntitiesForCurrentLayer(IEnumerable<LDtkLevel> currentLayerLevels)
     {
@@ -91,7 +104,7 @@ public class EntityService : IEntityService, IDisposable
                     continue;
                 }
 
-                var wrapper = new EntityWrapper(entity, _services);
+                var wrapper = _entityWrapperFactory.CreateWrapper(entity);
                 _behaviorRegistry.ApplyBehaviors(wrapper);
                 _allEntities.Add(wrapper);
             }
@@ -99,6 +112,7 @@ public class EntityService : IEntityService, IDisposable
 
         _logger.Debug($"Updated to {_allEntities.Count} entities for current layer (player preserved)");
     }
+
 
     public void Update(GameTime gameTime)
     {
@@ -162,15 +176,6 @@ public class EntityService : IEntityService, IDisposable
     public void ApplyBehaviorsToEntity(EntityWrapper entity)
     {
         _behaviorRegistry.ApplyBehaviors(entity);
-    }
-
-    /// <summary>
-    ///     Cleanup all entities and messaging when shutting down
-    /// </summary>
-    public void Dispose()
-    {
-        DisposeAllEntities();
-        _messageBus?.Clear();
     }
 
     private void DisposeAllEntities()

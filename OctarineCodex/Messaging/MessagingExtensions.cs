@@ -18,6 +18,7 @@ public static class MessagingExtensions
     /// </summary>
     public static IServiceCollection AddMessaging(this IServiceCollection services)
     {
+        services.AddSingleton<IMessageBus, MessageBus>();
         return services;
     }
 
@@ -43,7 +44,7 @@ public static class MessagingExtensions
         foreach (var handlerType in handlerTypes)
             try
             {
-                var handler = ActivatorUtilities.CreateInstance(services, handlerType);
+                var handler = ActivatorUtilities.CreateInstance(services, handlerType); // Use DI here too
 
                 // Register for each message type this handler supports
                 var interfaces = handlerType.GetInterfaces()

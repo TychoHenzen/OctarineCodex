@@ -1,7 +1,6 @@
 ﻿// OctarineCodex/Entities/Behaviors/PlayerTeleportBehavior.cs
 
 using System;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
 using OctarineCodex.Entities.Messages;
 using OctarineCodex.Input;
@@ -16,30 +15,35 @@ namespace OctarineCodex.Entities.Behaviors;
 [EntityBehavior(EntityType = "Player", Priority = 800)]
 public class PlayerTeleportBehavior : EntityBehavior
 {
-    private ICollisionService _collisionService;
-    private IEntityService _entityService;
-    private IInputService _inputService;
-    private ILoggingService _logger;
-    private IMapService _mapService;
-    private ITeleportService _teleportService;
-    private IWorldLayerService _worldLayerService;
+    private readonly ICollisionService _collisionService;
+    private readonly IEntityService _entityService;
+    private readonly IInputService _inputService;
+    private readonly ILoggingService _logger;
+    private readonly IMapService _mapService;
+    private readonly ITeleportService _teleportService;
+    private readonly IWorldLayerService _worldLayerService;
+
+    public PlayerTeleportBehavior(
+        IInputService inputService,
+        ITeleportService teleportService,
+        IWorldLayerService worldLayerService,
+        ICollisionService collisionService,
+        IEntityService entityService,
+        ILoggingService logger,
+        IMapService mapService)
+    {
+        _inputService = inputService ?? throw new ArgumentNullException(nameof(inputService));
+        _teleportService = teleportService ?? throw new ArgumentNullException(nameof(teleportService));
+        _worldLayerService = worldLayerService ?? throw new ArgumentNullException(nameof(worldLayerService));
+        _collisionService = collisionService ?? throw new ArgumentNullException(nameof(collisionService));
+        _entityService = entityService ?? throw new ArgumentNullException(nameof(entityService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _mapService = mapService ?? throw new ArgumentNullException(nameof(mapService));
+    }
 
     public override bool ShouldApplyTo(EntityWrapper entity)
     {
         return HasEntityType(entity, "Player");
-    }
-
-    public override void Initialize(EntityWrapper entity, IServiceProvider services)
-    {
-        base.Initialize(entity, services);
-
-        _inputService = services.GetRequiredService<IInputService>();
-        _teleportService = services.GetRequiredService<ITeleportService>();
-        _worldLayerService = services.GetRequiredService<IWorldLayerService>();
-        _collisionService = services.GetRequiredService<ICollisionService>();
-        _entityService = services.GetRequiredService<IEntityService>();
-        _logger = services.GetRequiredService<ILoggingService>();
-        _mapService = services.GetRequiredService<IMapService>();
     }
 
     public override void Update(GameTime gameTime)

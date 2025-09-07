@@ -1,4 +1,5 @@
-﻿using System;
+﻿// OctarineCodex/Entities/Behaviors/PlayerRenderBehavior.cs
+
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -18,22 +19,15 @@ public class PlayerRenderBehavior : EntityBehavior
         return HasEntityType(entity, "Player");
     }
 
-    public override void Initialize(EntityWrapper entity, IServiceProvider services)
-    {
-        base.Initialize(entity, services);
-        // You could inject a texture service here if needed
-    }
-
     public override void Draw(SpriteBatch spriteBatch)
     {
         var texture = _playerTexture ?? OctarineConstants.Pixel;
         if (texture == null)
             return;
-        var color = _playerColor;
 
         spriteBatch.Draw(texture,
             new Rectangle((int)Entity.Position.X, (int)Entity.Position.Y, OctarineConstants.PlayerSize,
                 OctarineConstants.PlayerSize),
-            color);
+            _playerColor);
     }
 }

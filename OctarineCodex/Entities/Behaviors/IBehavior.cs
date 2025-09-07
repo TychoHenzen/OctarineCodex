@@ -8,7 +8,7 @@ namespace OctarineCodex.Entities.Behaviors;
 
 public interface IBehavior
 {
-    void Initialize(EntityWrapper entity, IServiceProvider services);
+    void Initialize(EntityWrapper entity);
     void Update(GameTime gameTime);
     void OnMessage<T>(T message) where T : class;
     void Cleanup();

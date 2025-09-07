@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LDtk;
 using Microsoft.Xna.Framework;
+using OctarineCodex.Entities;
 using OctarineCodex.Logging;
 
 namespace OctarineCodex.Maps;

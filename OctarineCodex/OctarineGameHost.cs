@@ -3,6 +3,7 @@ using System.IO;
 using LDtk;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using OctarineCodex.Entities;
 using OctarineCodex.Entities.Behaviors;
 using OctarineCodex.Input;
 using OctarineCodex.Logging;
@@ -14,7 +15,7 @@ namespace OctarineCodex;
 
 public class OctarineGameHost : Game
 {
-    // Services - now unified
+    // Services - injected via DI
     private readonly ICameraService _cameraService;
     private readonly ICollisionService _collisionService;
     private readonly IEntityService _entityService;

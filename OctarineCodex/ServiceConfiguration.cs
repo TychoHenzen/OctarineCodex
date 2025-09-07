@@ -1,4 +1,4 @@
-﻿// Updated OctarineCodex/ServiceConfiguration.cs
+﻿// OctarineCodex/ServiceConfiguration.cs
 
 using System;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,33 +30,42 @@ public static class ServiceConfiguration
         services.AddSingleton<ILoggingService, LoggingService>();
 
         // Messaging system services  
-        services.AddMessaging();
+        services.AddMessaging(); // Now properly registers IMessageBus
 
         // Input system services
         services.AddSingleton<IKeyboardInputProvider, DesktopKeyboardInputProvider>();
         services.AddSingleton<IControllerInputProvider, DesktopControllerInputProvider>();
         services.AddSingleton<IInputService, CompositeInputService>();
 
+        // Camera services
         services.AddSingleton<ICameraService>(_ =>
         {
             var worldViewportSize = new Vector2(FixedWidth, FixedHeight) / WorldRenderScale;
             return new CameraService(worldViewportSize);
         });
 
+        // Map and level services
         services.AddSingleton<IMapService, MapService>();
-        services.AddTransient<ILevelRenderer, LevelRenderer>();
-
+        services.AddSingleton<ILevelRenderer, LevelRenderer>();
         services.AddSingleton<ICollisionService, CollisionService>();
         services.AddSingleton<IWorldLayerService, WorldLayerService>();
         services.AddSingleton<ITeleportService, TeleportService>();
 
+        // Entity system services
         services.AddSingleton<EntityBehaviorRegistry>();
         services.AddSingleton<IEntityService, EntityService>();
+        services.AddSingleton<IEntityWrapperFactory, EntityWrapperFactory>();
+
+        // Game host (singleton - single instance needed)
+        services.AddSingleton<OctarineGameHost>();
 
         return services;
     }
 
-    public static void InitializeEntitySystem(IServiceProvider services)
+    /// <summary>
+    ///     Initialize systems that require post-registration setup
+    /// </summary>
+    public static void InitializeGameSystems(IServiceProvider services)
     {
         var registry = services.GetRequiredService<EntityBehaviorRegistry>();
         registry.DiscoverBehaviors(); // Auto-discover all [EntityBehavior] classes

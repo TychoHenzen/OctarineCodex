@@ -10,15 +10,13 @@ namespace OctarineCodex.Entities.Behaviors;
 public abstract class EntityBehavior : IBehavior
 {
     protected EntityWrapper Entity { get; private set; }
-    protected IServiceProvider Services { get; private set; }
 
     /// <summary>
     ///     Called once when the behavior is attached to an entity
     /// </summary>
-    public virtual void Initialize(EntityWrapper entity, IServiceProvider services)
+    public virtual void Initialize(EntityWrapper entity)
     {
         Entity = entity;
-        Services = services;
     }
 
     /// <summary>

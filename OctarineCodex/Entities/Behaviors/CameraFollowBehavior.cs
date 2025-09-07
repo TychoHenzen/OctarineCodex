@@ -2,7 +2,6 @@
 
 using System;
 using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
 using OctarineCodex.Entities.Messages;
 using OctarineCodex.Maps;
@@ -17,9 +16,17 @@ namespace OctarineCodex.Entities.Behaviors;
 [EntityBehavior(EntityType = "Player", Priority = 900)]
 public class CameraFollowBehavior : EntityBehavior, IMessageHandler<PlayerMovedMessage>
 {
-    private ICameraService _cameraService;
-    private IMapService _mapService;
-    private IWorldLayerService _worldLayerService;
+    private readonly ICameraService _cameraService;
+    private readonly IMapService _mapService;
+    private readonly IWorldLayerService _worldLayerService;
+
+    public CameraFollowBehavior(ICameraService cameraService, IMapService mapService,
+        IWorldLayerService worldLayerService)
+    {
+        _cameraService = cameraService ?? throw new ArgumentNullException(nameof(cameraService));
+        _mapService = mapService ?? throw new ArgumentNullException(nameof(mapService));
+        _worldLayerService = worldLayerService ?? throw new ArgumentNullException(nameof(worldLayerService));
+    }
 
     /// <summary>
     ///     Handle player movement messages to update camera position
@@ -34,13 +41,9 @@ public class CameraFollowBehavior : EntityBehavior, IMessageHandler<PlayerMovedM
         return HasEntityType(entity, "Player");
     }
 
-    public override void Initialize(EntityWrapper entity, IServiceProvider services)
+    public override void Initialize(EntityWrapper entity)
     {
-        base.Initialize(entity, services);
-
-        _cameraService = services.GetRequiredService<ICameraService>();
-        _mapService = services.GetRequiredService<IMapService>();
-        _worldLayerService = services.GetRequiredService<IWorldLayerService>();
+        base.Initialize(entity);
 
         // Initial camera positioning
         UpdateCameraPosition(Entity.Position);
@@ -49,13 +52,10 @@ public class CameraFollowBehavior : EntityBehavior, IMessageHandler<PlayerMovedM
     public override void Update(GameTime gameTime)
     {
         // Camera now updates via PlayerMovedMessage instead of polling position
-        // Keep this method for potential future camera shake, smoothing, or other effects
     }
 
     private void UpdateCameraPosition(Vector2 playerPosition)
     {
-        if (_cameraService == null || _mapService == null) return;
-
         Vector2 roomPosition;
         Vector2 roomSize;
 

@@ -2,9 +2,8 @@
 using LDtk;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using OctarineCodex.Entities;
 
-namespace OctarineCodex.Maps;
+namespace OctarineCodex.Entities;
 
 public interface IEntityService
 {

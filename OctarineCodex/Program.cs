@@ -1,9 +1,5 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using OctarineCodex.Input;
-using OctarineCodex.Logging;
-using OctarineCodex.Maps;
-using OctarineCodex.Services;
 
 namespace OctarineCodex;
 
@@ -16,29 +12,11 @@ public static class Program
 
         var serviceProvider = services.BuildServiceProvider();
 
+        // Initialize systems that require post-registration setup
+        ServiceConfiguration.InitializeGameSystems(serviceProvider);
 
-        // Create game with all injected services
-        var logger = serviceProvider.GetRequiredService<ILoggingService>();
-        var inputService = serviceProvider.GetRequiredService<IInputService>();
-        var collisionService = serviceProvider.GetRequiredService<ICollisionService>();
-        var entityService = serviceProvider.GetRequiredService<IEntityService>();
-        var mapService = serviceProvider.GetRequiredService<IMapService>();
-        var levelRenderer = serviceProvider.GetRequiredService<ILevelRenderer>();
-        var worldLayerService = serviceProvider.GetRequiredService<IWorldLayerService>();
-        var teleportService = serviceProvider.GetRequiredService<ITeleportService>();
-        var cameraService = serviceProvider.GetRequiredService<ICameraService>();
-
-        using var game = new OctarineGameHost(
-            logger,
-            inputService,
-            mapService,
-            levelRenderer,
-            collisionService,
-            entityService,
-            worldLayerService,
-            teleportService,
-            cameraService);
-        ServiceConfiguration.InitializeEntitySystem(serviceProvider);
+        // Get the game host from DI instead of manual construction
+        using var game = serviceProvider.GetRequiredService<OctarineGameHost>();
 
         game.Window.AllowUserResizing = true;
         game.Run();

@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using LDtk;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using OctarineCodex.Entities.Behaviors;
@@ -19,15 +18,13 @@ public class EntityWrapper : ILDtkEntity, IMessageReceiver, IDisposable
     private readonly Dictionary<Type, IBehavior> _behaviorsByType = new();
     private readonly Dictionary<string, object> _customFieldCache = new();
     private readonly IMessageBus? _messageBus;
-    private readonly IServiceProvider _services;
     private readonly Type _underlyingType;
 
-    public EntityWrapper(ILDtkEntity underlyingEntity, IServiceProvider services = null)
+    public EntityWrapper(ILDtkEntity underlyingEntity, IMessageBus messageBus)
     {
         UnderlyingEntity = underlyingEntity ?? throw new ArgumentNullException(nameof(underlyingEntity));
+        _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
         _underlyingType = underlyingEntity.GetType();
-        _services = services;
-        _messageBus = services?.GetRequiredService<IMessageBus>();
 
         CacheCustomFields();
 
@@ -39,6 +36,21 @@ public class EntityWrapper : ILDtkEntity, IMessageReceiver, IDisposable
     public string EntityType => _underlyingType.Name;
     public string SourceNamespace => _underlyingType.Namespace;
     public ILDtkEntity UnderlyingEntity { get; }
+
+    /// <summary>
+    ///     Cleanup when entity is destroyed
+    /// </summary>
+    public void Dispose()
+    {
+        // Unregister from message bus
+        if (_messageBus != null) _messageBus.UnregisterEntity(GetEntityId());
+
+        // Cleanup behaviors
+        foreach (var behavior in _behaviors) behavior.Cleanup();
+
+        _behaviors.Clear();
+        _behaviorsByType.Clear();
+    }
 
     // ILDtkEntity delegation (same as before)
     public string Identifier
@@ -152,7 +164,7 @@ public class EntityWrapper : ILDtkEntity, IMessageReceiver, IDisposable
 
         _behaviors.Add(behavior);
         _behaviorsByType[behavior.GetType()] = behavior;
-        behavior.Initialize(this, _services);
+        behavior.Initialize(this);
     }
 
     public T GetBehavior<T>() where T : EntityBehavior
@@ -259,20 +271,5 @@ public class EntityWrapper : ILDtkEntity, IMessageReceiver, IDisposable
     public string GetEntityId()
     {
         return $"{EntityType}_{Iid}";
-    }
-
-    /// <summary>
-    ///     Cleanup when entity is destroyed
-    /// </summary>
-    public void Dispose()
-    {
-        // Unregister from message bus
-        if (_messageBus != null) _messageBus.UnregisterEntity(GetEntityId());
-
-        // Cleanup behaviors
-        foreach (var behavior in _behaviors) behavior.Cleanup();
-
-        _behaviors.Clear();
-        _behaviorsByType.Clear();
     }
 }
