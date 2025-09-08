@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using JetBrains.Annotations;
 using LDtk;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -14,40 +15,41 @@ using OctarineCodex.Messaging;
 
 namespace OctarineCodex.Entities;
 
-public class EntityService : IEntityService, IDisposable
+[UsedImplicitly]
+public class EntityService(
+    EntityBehaviorRegistry behaviorRegistry,
+    ILoggingService logger,
+    IMessageBus messageBus,
+    IEntityWrapperFactory entityWrapperFactory)
+    : IEntityService, IDisposable
 {
-    private readonly List<EntityWrapper> _allEntities = new();
-    private readonly EntityBehaviorRegistry _behaviorRegistry;
-    private readonly IEntityWrapperFactory _entityWrapperFactory;
-    private readonly ILoggingService _logger;
-    private readonly IMessageBus? _messageBus;
-    private readonly IServiceProvider _services;
+    private readonly List<EntityWrapper> _allEntities = [];
 
-
-    public EntityService(EntityBehaviorRegistry behaviorRegistry, IServiceProvider services, ILoggingService logger,
-        IMessageBus messageBus,
-        IEntityWrapperFactory entityWrapperFactory)
-    {
-        _behaviorRegistry = behaviorRegistry ?? throw new ArgumentNullException(nameof(behaviorRegistry));
-        _services = services ?? throw new ArgumentNullException(nameof(services));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
-        _entityWrapperFactory = entityWrapperFactory ?? throw new ArgumentNullException(nameof(entityWrapperFactory));
-    }
 
     /// <summary>
-    ///     Cleanup all entities and messaging when shutting down
+    ///     Cleanup all entities and messaging when shutting down.
     /// </summary>
     public void Dispose()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing)
+        {
+            return;
+        }
+
         DisposeAllEntities();
-        _messageBus?.Clear();
+        messageBus.Clear();
     }
 
     public void InitializeEntities(IEnumerable<LDtkLevel> levels)
     {
         var levelCount = levels.Count();
-        _logger.Debug($"Initializing entities from {levelCount} levels");
+        logger.Debug($"Initializing entities from {levelCount} levels");
 
         // Clear existing entities and message bus registrations
         DisposeAllEntities();
@@ -57,39 +59,38 @@ public class EntityService : IEntityService, IDisposable
             var entities = GetAllEntitiesFromLevel(level);
             foreach (var entity in entities)
             {
-                var wrapper = _entityWrapperFactory.CreateWrapper(entity);
-                _behaviorRegistry.ApplyBehaviors(wrapper);
+                EntityWrapper wrapper = entityWrapperFactory.CreateWrapper(entity);
+                behaviorRegistry.ApplyBehaviors(wrapper);
                 _allEntities.Add(wrapper);
 
-                _logger.Debug($"Initialized entity {wrapper.EntityType} at {wrapper.Position}");
+                logger.Debug($"Initialized entity {wrapper.EntityType} at {wrapper.Position}");
             }
         }
 
-        _logger.Debug($"Initialized {_allEntities.Count} total entities");
+        logger.Debug($"Initialized {_allEntities.Count} total entities");
     }
-
 
     public void UpdateEntitiesForCurrentLayer(IEnumerable<LDtkLevel> currentLayerLevels)
     {
         var levelCount = currentLayerLevels.Count();
-        _logger.Debug($"Updating entities for current layer with {levelCount} levels (preserving player)");
+        logger.Debug($"Updating entities for current layer with {levelCount} levels (preserving player)");
 
         // Preserve the current player entity
         var currentPlayer = GetPlayerEntity();
 
         // Dispose non-player entities
-        var entitiesToDispose = _allEntities.Where(e => e.EntityType != "Player").ToList();
-        foreach (var entity in entitiesToDispose) entity.Dispose();
+        List<EntityWrapper> entitiesToDispose = GetAllEntities().Where(e => e != currentPlayer).ToList();
+        foreach (EntityWrapper entity in entitiesToDispose)
+        {
+            entity.Dispose();
+        }
 
         // Clear and reload other entities
         _allEntities.Clear();
 
         // Re-add the preserved player first
-        if (currentPlayer != null)
-        {
-            _allEntities.Add(currentPlayer);
-            _logger.Debug($"Preserved player entity at {currentPlayer.Position}");
-        }
+        _allEntities.Add(currentPlayer);
+        logger.Debug($"Preserved player entity at {currentPlayer.Position}");
 
         // Load non-player entities from new layer
         foreach (var level in currentLayerLevels)
@@ -98,61 +99,69 @@ public class EntityService : IEntityService, IDisposable
             foreach (var entity in entities)
             {
                 // Skip player entities from LDTK data since we preserved the current one
-                if (entity is ILDtkEntity ldtkEntity && ldtkEntity.Identifier == "Player")
+                if (entity is { Identifier: OctarineConstants.PlayerEntityName })
                 {
-                    _logger.Debug($"Skipping Player entity from LDTK data at {entity.Position}");
+                    logger.Debug($"Skipping Player entity from LDTK data at {entity.Position}");
                     continue;
                 }
 
-                var wrapper = _entityWrapperFactory.CreateWrapper(entity);
-                _behaviorRegistry.ApplyBehaviors(wrapper);
+                EntityWrapper wrapper = entityWrapperFactory.CreateWrapper(entity);
+                behaviorRegistry.ApplyBehaviors(wrapper);
                 _allEntities.Add(wrapper);
             }
         }
 
-        _logger.Debug($"Updated to {_allEntities.Count} entities for current layer (player preserved)");
+        logger.Debug($"Updated to {_allEntities.Count} entities for current layer (player preserved)");
     }
-
 
     public void Update(GameTime gameTime)
     {
         // Process queued messages first
-        _messageBus?.ProcessQueuedMessages();
+        messageBus.ProcessQueuedMessages();
 
         // Create snapshot to prevent concurrent modification during teleport
         var entitySnapshot = _allEntities.ToList();
-        foreach (var entity in entitySnapshot) entity.Update(gameTime);
+        foreach (EntityWrapper entity in entitySnapshot)
+        {
+            entity.Update(gameTime);
+        }
     }
 
     public void Draw(SpriteBatch spriteBatch)
     {
-        foreach (var entity in _allEntities) entity.Draw(spriteBatch);
+        foreach (EntityWrapper entity in _allEntities)
+        {
+            entity.Draw(spriteBatch);
+        }
     }
 
-    public IEnumerable<T> GetGeneratedEntitiesOfType<T>() where T : ILDtkEntity, new()
+    public IEnumerable<T> GetGeneratedEntitiesOfType<T>()
+        where T : ILDtkEntity, new()
     {
         var typeName = typeof(T).Name;
         var matchingEntities = _allEntities
             .Where(e => e.EntityType.Equals(typeName, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        _logger.Debug(
+        logger.Debug(
             $"GetGeneratedEntitiesOfType<{typeName}>: Found {matchingEntities.Count} matching entities out of {_allEntities.Count} total entities");
 
         var results = new List<T>();
         foreach (var entity in matchingEntities)
+        {
             try
             {
                 var castedEntity = (T)entity.UnderlyingEntity;
                 results.Add(castedEntity);
-                _logger.Debug(
+                logger.Debug(
                     $"Successfully cast entity {entity.EntityType} at {entity.Position} to type {typeof(T).Name}");
             }
-            catch (Exception ex)
+            catch (InvalidCastException ex)
             {
-                _logger.Warn(
+                logger.Warn(
                     $"Failed to cast entity {entity.EntityType} (underlying type: {entity.UnderlyingEntity.GetType().FullName}) to {typeof(T).FullName}: {ex.Message}");
             }
+        }
 
         return results;
     }
@@ -164,23 +173,22 @@ public class EntityService : IEntityService, IDisposable
 
     public Vector2? GetPlayerSpawnPoint()
     {
-        var player = _allEntities.FirstOrDefault(e => e.EntityType == "Player");
-        return player?.Position;
+        return GetPlayerEntity().Position;
     }
 
     public EntityWrapper GetPlayerEntity()
     {
-        return _allEntities.FirstOrDefault(e => e.EntityType == "Player");
+        return GetAllEntities().First(e => e.EntityType == OctarineConstants.PlayerEntityName);
     }
 
-    public void ApplyBehaviorsToEntity(EntityWrapper entity)
-    {
-        _behaviorRegistry.ApplyBehaviors(entity);
-    }
 
     private void DisposeAllEntities()
     {
-        foreach (var entity in _allEntities) entity.Dispose();
+        foreach (EntityWrapper entity in _allEntities)
+        {
+            entity.Dispose();
+        }
+
         _allEntities.Clear();
     }
 
@@ -190,77 +198,63 @@ public class EntityService : IEntityService, IDisposable
 
         if (level.LayerInstances == null)
         {
-            _logger.Warn($"Level {level.Identifier} has no layer instances");
+            logger.Warn($"Level {level.Identifier} has no layer instances");
             return entities;
         }
 
-        var targetNamespace = ExtractNamespaceFromFile(level.WorldFilePath);
+        var targetNamespace = Path.GetFileNameWithoutExtension(level.WorldFilePath);
         var entityTypes = GetValidEntityTypes(targetNamespace);
 
         foreach (var entityType in entityTypes)
+        {
             try
             {
                 // Use our Newtonsoft.Json-based loader
                 var method = typeof(NewtonsoftEntityLoader).GetMethod("GetEntitiesWithNewtonsoft")
                     ?.MakeGenericMethod(entityType);
-                if (method != null)
+                if (method == null)
                 {
-                    var entityArray = method.Invoke(null, new object[] { level }) as Array;
-                    if (entityArray != null && entityArray.Length > 0)
-                    {
-                        _logger.Debug($"Found {entityArray.Length} entities of type {entityType.Name}");
-                        foreach (ILDtkEntity entity in entityArray) entities.Add(entity);
-                    }
+                    continue;
                 }
+
+                if (method.Invoke(null, [level]) is not Array { Length: > 0 } entityArray)
+                {
+                    continue;
+                }
+
+                logger.Debug($"Found {entityArray.Length} entities of type {entityType.Name}");
+                entities.AddRange(entityArray.Cast<ILDtkEntity>());
             }
-            catch (Exception ex)
+            catch (TargetInvocationException ex)
             {
-                _logger.Exception(ex,
+                logger.Exception(
+                    ex,
                     $"Failed to get entities of type {entityType.Name} from level {level.Identifier}");
             }
+        }
 
-        _logger.Debug($"Found {entities.Count} total entities in level {level.Identifier}");
+        logger.Debug($"Found {entities.Count} total entities in level {level.Identifier}");
         return entities;
     }
 
-    private static string ExtractNamespaceFromFile(string ldtkFile)
-    {
-        // Extract filename without extension to determine namespace
-        // e.g., "test_level2.ldtk" -> "test_level2"
-        var fileName = Path.GetFileNameWithoutExtension(ldtkFile);
-        return fileName;
-    }
-
-    private IEnumerable<Type> GetValidEntityTypes(string targetNamespace)
+    private List<Type> GetValidEntityTypes(string targetNamespace)
     {
         try
         {
             var allTypes = Assembly.GetExecutingAssembly().GetTypes();
             var validTypes = allTypes
                 .Where(t => typeof(ILDtkEntity).IsAssignableFrom(t) &&
-                            !t.IsInterface &&
-                            !t.IsAbstract &&
-                            IsGeneratedEntityType(t, targetNamespace))
+                            t is { IsInterface: false, IsAbstract: false })
                 .ToList();
 
-            _logger.Debug(
+            logger.Debug(
                 $"Found {validTypes.Count} valid entity types in namespace {targetNamespace}: {string.Join(", ", validTypes.Select(t => t.Name))}");
             return validTypes;
         }
         catch (Exception ex)
         {
-            _logger.Exception(ex, "Failed to get entity types from assembly");
+            logger.Exception(ex, "Failed to get entity types from assembly");
             return [];
         }
-    }
-
-    private static bool IsGeneratedEntityType(Type type, string targetNamespace)
-    {
-        // Only include types from the specific target namespace
-        var isInTargetNamespace = type.Namespace == targetNamespace;
-        var isNotEntityWrapper = type.Name != "EntityWrapper";
-        var hasParameterlessConstructor = type.GetConstructor(Type.EmptyTypes) != null;
-
-        return isInTargetNamespace && isNotEntityWrapper && hasParameterlessConstructor;
     }
 }

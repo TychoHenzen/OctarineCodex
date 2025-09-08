@@ -1,59 +1,92 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <OutputType>WinExe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
-        <RollForward>Major</RollForward>
-        <PublishReadyToRun>false</PublishReadyToRun>
-        <TieredCompilation>false</TieredCompilation>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-    <PropertyGroup>
-        <ApplicationManifest>app.manifest</ApplicationManifest>
-        <ApplicationIcon>Icon.ico</ApplicationIcon>
-    </PropertyGroup>
-    <ItemGroup>
-        <None Remove="Icon.ico"/>
-        <None Remove="Icon.bmp"/>
-    </ItemGroup>
-    <ItemGroup>
-        <EmbeddedResource Include="Icon.ico">
-            <LogicalName>Icon.ico</LogicalName>
-        </EmbeddedResource>
-        <EmbeddedResource Include="Icon.bmp">
-            <LogicalName>Icon.bmp</LogicalName>
-        </EmbeddedResource>
-    </ItemGroup>
-    <ItemGroup>
-        <Content Include="Content\*.ldtk">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
-    <ItemGroup>
-        <PackageReference Include="LDtkMonogame" Version="1.8.0"/>
-        <PackageReference Include="LDtkMonogame.ContentPipeline" Version="1.8.0"/>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8"/>
-        <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.*"/>
-        <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.*"/>
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
-    </ItemGroup>
-    <Target Name="RestoreDotnetTools" BeforeTargets="CollectPackageReferences">
-        <Message Text="Restoring dotnet tools (this might take a while depending on your internet speed and should only happen upon building your project for the first time, or after upgrading MonoGame, or clearing your nuget cache)" Importance="High"/>
-        <Exec Command="dotnet tool restore"/>
-    </Target>
-    <Target Name="RunLDtkCodegen" BeforeTargets="BeforeBuild">
-        <!-- Delete the Generated folder (ignore errors if it doesn't exist) -->
-        <RemoveDir Directories="Generated"/>
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <TieredCompilation>false</TieredCompilation>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Icon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
 
-        <!-- Create Generated folder -->
-        <MakeDir Directories="Generated"/>
+  <!-- Exclude Generated folder from analysis -->
+  <ItemGroup>
+    <Compile Remove="Generated/**/*.cs"/>
+    <None Include="Generated/**/*.cs"/>
+  </ItemGroup>
 
-        <!-- Get all LDTK files -->
-        <ItemGroup>
-            <LdtkFiles Include="Content/*.ldtk"/>
-        </ItemGroup>
+  <!-- Re-include for compilation but mark as generated -->
+  <ItemGroup>
+    <Compile Include="Generated/**/*.cs">
+      <AutoGen>true</AutoGen>
+      <DesignTime>true</DesignTime>
+    </Compile>
+  </ItemGroup>
 
-        <!-- Run LDtk codegen for each file -->
-        <Exec Command="ldtkgen -i %(LdtkFiles.Identity) -o Generated/%(LdtkFiles.Filename) -n %(LdtkFiles.Filename)"
-              ContinueOnError="false"/>
-    </Target>
+  <ItemGroup>
+    <None Remove="Icon.ico"/>
+    <None Remove="Icon.bmp"/>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Icon.ico">
+      <LogicalName>Icon.ico</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Icon.bmp">
+      <LogicalName>Icon.bmp</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Content\*.ldtk">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JetBrains.Annotations" Version="2025.2.2"/>
+    <PackageReference Include="LDtkMonogame" Version="1.8.0"/>
+    <PackageReference Include="LDtkMonogame.ContentPipeline" Version="1.8.0"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8"/>
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.*"/>
+    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.*"/>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Roslynator.Analyzers" Version="4.12.9">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <Target Name="RestoreDotnetTools" BeforeTargets="CollectPackageReferences">
+    <Message Text="Restoring dotnet tools (this might take a while depending on your internet speed and should only happen upon building your project for the first time, or after upgrading MonoGame, or clearing your nuget cache)" Importance="High"/>
+    <Exec Command="dotnet tool restore"/>
+  </Target>
+  <Target Name="RunLDtkCodegen" BeforeTargets="BeforeBuild">
+    <!-- Delete the Generated folder (ignore errors if it doesn't exist) -->
+    <RemoveDir Directories="Generated"/>
+
+    <!-- Create Generated folder -->
+    <MakeDir Directories="Generated"/>
+
+    <!-- Get all LDTK files -->
+    <ItemGroup>
+      <LdtkFiles Include="Content/*.ldtk"/>
+    </ItemGroup>
+
+    <!-- Run LDtk codegen for each file -->
+    <Exec Command="ldtkgen -i %(LdtkFiles.Identity) -o Generated/%(LdtkFiles.Filename) -n %(LdtkFiles.Filename)"
+          ContinueOnError="false"/>
+  </Target>
 </Project>

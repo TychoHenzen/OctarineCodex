@@ -3,7 +3,7 @@
 namespace OctarineCodex.Entities;
 
 [AttributeUsage(AttributeTargets.Class)]
-public class EntityBehaviorAttribute : Attribute
+public sealed class EntityBehaviorAttribute : Attribute
 {
     /// <summary>
     ///     Optional: Restrict to specific entity type for performance optimization

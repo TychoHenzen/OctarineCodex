@@ -1,6 +1,5 @@
 ﻿// OctarineCodex/Entities/Behaviors/IBehavior.cs
 
-using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -10,15 +9,10 @@ public interface IBehavior
 {
     void Initialize(EntityWrapper entity);
     void Update(GameTime gameTime);
-    void OnMessage<T>(T message) where T : class;
+
+    void OnMessage<T>(T message)
+        where T : class;
     void Cleanup();
 
     void Draw(SpriteBatch spriteBatch);
-}
-
-public interface IBehaviorBinding
-{
-    int Priority { get; }
-    bool ShouldApply(EntityWrapper entity);
-    IBehavior CreateBehavior(IServiceProvider services);
 }

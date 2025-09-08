@@ -1,6 +1,4 @@
-﻿// Updated OctarineCodex/Entities/EntityWrapper.cs
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -12,47 +10,36 @@ using OctarineCodex.Messaging;
 
 namespace OctarineCodex.Entities;
 
-public class EntityWrapper : ILDtkEntity, IMessageReceiver, IDisposable
+public sealed class EntityWrapper : IMessageReceiver, IDisposable
 {
-    protected readonly List<IBehavior> _behaviors = new();
-    private readonly Dictionary<Type, IBehavior> _behaviorsByType = new();
-    private readonly Dictionary<string, object> _customFieldCache = new();
-    private readonly IMessageBus? _messageBus;
+    // Static instances to reduce allocations
+    private static readonly MessageOptions LocalImmediateOptions =
+        new() { Scope = MessageScope.Local, Immediate = true };
+
+    private readonly List<IBehavior> _behaviors = [];
+    private readonly Dictionary<Type, IBehavior> _behaviorsByType = [];
+    private readonly Dictionary<string, object> _customFieldCache = [];
+    private readonly IMessageBus _messageBus;
     private readonly Type _underlyingType;
+    private bool _disposed;
 
     public EntityWrapper(ILDtkEntity underlyingEntity, IMessageBus messageBus)
     {
         UnderlyingEntity = underlyingEntity ?? throw new ArgumentNullException(nameof(underlyingEntity));
-        _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
+        _messageBus = messageBus;
         _underlyingType = underlyingEntity.GetType();
 
         CacheCustomFields();
 
         // Register with message bus if available
-        if (_messageBus != null) _messageBus.RegisterEntity(GetEntityId(), this);
+        _messageBus.RegisterEntity(GetEntityId(), this);
     }
 
     // Wrapper-specific properties
     public string EntityType => _underlyingType.Name;
-    public string SourceNamespace => _underlyingType.Namespace;
     public ILDtkEntity UnderlyingEntity { get; }
 
-    /// <summary>
-    ///     Cleanup when entity is destroyed
-    /// </summary>
-    public void Dispose()
-    {
-        // Unregister from message bus
-        if (_messageBus != null) _messageBus.UnregisterEntity(GetEntityId());
-
-        // Cleanup behaviors
-        foreach (var behavior in _behaviors) behavior.Cleanup();
-
-        _behaviors.Clear();
-        _behaviorsByType.Clear();
-    }
-
-    // ILDtkEntity delegation (same as before)
+    // ILDtkEntity delegation
     public string Identifier
     {
         get => UnderlyingEntity.Identifier;
@@ -102,22 +89,32 @@ public class EntityWrapper : ILDtkEntity, IMessageReceiver, IDisposable
     }
 
     // IMessageReceiver implementation
-    public void ReceiveMessage<T>(T message, string? senderId = null) where T : class
+    public void ReceiveMessage<T>(T message, string? senderId = null)
+        where T : class
     {
         // First try typed handlers if any behaviors implement IMessageHandler<T>
-        foreach (var behavior in _behaviors)
+        foreach (IBehavior behavior in _behaviors)
+        {
             if (behavior is IMessageHandler<T> typedHandler)
+            {
                 typedHandler.HandleMessage(message, senderId);
+            }
+        }
 
         // Then fallback to existing OnMessage pattern for all behaviors
-        foreach (var behavior in _behaviors) behavior.OnMessage(message);
+        foreach (IBehavior behavior in _behaviors)
+        {
+            behavior.OnMessage(message);
+        }
     }
 
-    // Custom field access (same as before)
+    // Custom field access
     public T GetField<T>(string fieldName)
     {
         if (_customFieldCache.TryGetValue(fieldName, out var value) && value is T typedValue)
+        {
             return typedValue;
+        }
 
         throw new ArgumentException($"Field '{fieldName}' not found or not of type {typeof(T).Name}");
     }
@@ -127,7 +124,7 @@ public class EntityWrapper : ILDtkEntity, IMessageReceiver, IDisposable
         return _customFieldCache.ContainsKey(fieldName);
     }
 
-    public bool TryGetField<T>(string fieldName, out T value)
+    public bool TryGetField<T>(string fieldName, out T? value)
     {
         if (_customFieldCache.TryGetValue(fieldName, out var obj) && obj is T typedValue)
         {
@@ -135,140 +132,191 @@ public class EntityWrapper : ILDtkEntity, IMessageReceiver, IDisposable
             return true;
         }
 
-        value = default;
+        value = default(T);
         return false;
     }
 
-    public IReadOnlyDictionary<string, object> GetAllCustomFields()
+    // Behavior management
+    public void AddBehavior(IBehavior? behavior)
     {
-        return _customFieldCache.AsReadOnly();
-    }
-
-    private void CacheCustomFields()
-    {
-        var entityInterfaceProps = typeof(ILDtkEntity).GetProperties().Select(p => p.Name).ToHashSet();
-
-        foreach (var prop in _underlyingType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
-            if (!entityInterfaceProps.Contains(prop.Name) && prop.CanRead)
-            {
-                var value = prop.GetValue(UnderlyingEntity);
-                _customFieldCache[prop.Name] = value;
-            }
-    }
-
-    // Behavior management (same as before)
-    public void AddBehavior(EntityBehavior behavior)
-    {
-        if (_behaviorsByType.ContainsKey(behavior.GetType()))
+        if (behavior == null || _behaviorsByType.ContainsKey(behavior.GetType()))
+        {
             return;
+        }
 
         _behaviors.Add(behavior);
         _behaviorsByType[behavior.GetType()] = behavior;
         behavior.Initialize(this);
     }
 
-    public T GetBehavior<T>() where T : EntityBehavior
+    public T? GetBehavior<T>()
+        where T : EntityBehavior
     {
-        return (T)_behaviorsByType.GetValueOrDefault(typeof(T));
+        return (T?)_behaviorsByType.GetValueOrDefault(typeof(T));
     }
 
-    public bool HasBehavior<T>() where T : EntityBehavior
+    public void Update(GameTime gameTime)
     {
-        return _behaviorsByType.ContainsKey(typeof(T));
-    }
-
-    public void RemoveBehavior<T>() where T : EntityBehavior
-    {
-        var behaviorType = typeof(T);
-        if (_behaviorsByType.TryGetValue(behaviorType, out var behavior))
+        foreach (IBehavior behavior in _behaviors)
         {
-            behavior.Cleanup();
-            _behaviors.Remove(behavior);
-            _behaviorsByType.Remove(behaviorType);
+            behavior.Update(gameTime);
         }
-    }
-
-    // Enhanced messaging system
-
-    /// <summary>
-    ///     Send a local message to all behaviors on this entity (backward compatible)
-    /// </summary>
-    public void SendMessage<T>(T message) where T : class
-    {
-        // Route through message bus with local scope for consistency
-        SendMessage(message, new MessageOptions { Scope = MessageScope.Local, Immediate = true });
-    }
-
-    /// <summary>
-    ///     Send a message with advanced routing options
-    /// </summary>
-    public void SendMessage<T>(T message, MessageOptions options) where T : class
-    {
-        if (_messageBus == null)
-        {
-            // Fallback to local messaging if no message bus available
-            if (options.Scope == MessageScope.Local) SendMessage(message);
-            return;
-        }
-
-        _messageBus.SendMessage(message, options, GetEntityId());
-    }
-
-    /// <summary>
-    ///     Send a message to a specific entity
-    /// </summary>
-    public void SendMessageToEntity<T>(T message, string targetEntityId, bool immediate = true) where T : class
-    {
-        SendMessage(message, new MessageOptions
-        {
-            Scope = MessageScope.Entity,
-            TargetEntityId = targetEntityId,
-            Immediate = immediate
-        });
-    }
-
-    /// <summary>
-    ///     Send a global message to all entities and systems
-    /// </summary>
-    public void SendGlobalMessage<T>(T message, bool immediate = true) where T : class
-    {
-        SendMessage(message, new MessageOptions
-        {
-            Scope = MessageScope.Global,
-            Immediate = immediate
-        });
-    }
-
-    /// <summary>
-    ///     Send a spatial message to entities within range (useful for magic effects)
-    /// </summary>
-    public void SendSpatialMessage<T>(T message, float range, Vector2? position = null, bool includeSelf = false,
-        bool immediate = true) where T : class
-    {
-        SendMessage(message, new MessageOptions
-        {
-            Scope = MessageScope.Spatial,
-            Position = position ?? Position,
-            Range = range,
-            IncludeSender = includeSelf,
-            Immediate = immediate
-        });
-    }
-
-    public virtual void Update(GameTime gameTime)
-    {
-        foreach (var behavior in _behaviors) behavior.Update(gameTime);
     }
 
     public void Draw(SpriteBatch spriteBatch)
     {
-        foreach (var behavior in _behaviors) behavior.Draw(spriteBatch);
+        foreach (IBehavior behavior in _behaviors)
+        {
+            behavior.Draw(spriteBatch);
+        }
     }
 
     /// <summary>
-    ///     Get unique entity identifier for messaging
+    ///     Send a local message to all behaviors on this entity (backward compatible).
     /// </summary>
-    public string GetEntityId()
+    /// <param name="message">The message to send.</param>
+    public void SendMessage<T>(T message)
+        where T : class
+    {
+        // Route through message bus with local scope for consistency
+        SendMessage(message, LocalImmediateOptions);
+    }
+
+    /// <summary>
+    ///     Send a message with advanced routing options.
+    /// </summary>
+    /// <param name="message">The message to send.</param>
+    /// <param name="options">The routing options for the message.</param>
+    public void SendMessage<T>(T message, MessageOptions? options)
+        where T : class
+    {
+        if (options != null && options.Scope != MessageScope.Local)
+        {
+            // Delegate to message bus for non-local messages
+            _messageBus.SendMessage(message, options, GetEntityId());
+            return;
+        }
+
+        // Handle local messages directly
+        foreach (IBehavior behavior in _behaviors)
+        {
+            behavior.OnMessage(message);
+        }
+    }
+
+    /// <summary>
+    ///     Send a message to a specific entity.
+    /// </summary>
+    /// <param name="message">The message to send.</param>
+    /// <param name="targetEntityId">The ID of the target entity.</param>
+    /// <param name="immediate">Whether to send the message immediately.</param>
+    public void SendMessageToEntity<T>(T message, string targetEntityId, bool immediate = true)
+        where T : class
+    {
+        SendMessage(
+            message,
+            new MessageOptions { Scope = MessageScope.Entity, TargetEntityId = targetEntityId, Immediate = immediate });
+    }
+
+    /// <summary>
+    ///     Send a global message to all entities and systems.
+    /// </summary>
+    /// <param name="message">The message to send.</param>
+    /// <param name="immediate">Whether to send the message immediately.</param>
+    public void SendGlobalMessage<T>(T message, bool immediate = true)
+        where T : class
+    {
+        SendMessage(message, new MessageOptions { Scope = MessageScope.Global, Immediate = immediate });
+    }
+
+    /// <summary>
+    ///     Send a spatial message to entities within range (useful for magic effects).
+    /// </summary>
+    /// <param name="message">The message to send.</param>
+    /// <param name="range">The range within which to send the message.</param>
+    /// <param name="position">The position from which to measure range (defaults to entity position).</param>
+    /// <param name="includeSelf">Whether to include the sender in the message recipients.</param>
+    /// <param name="immediate">Whether to send the message immediately.</param>
+    public void SendSpatialMessage<T>(
+        T message,
+        float range,
+        Vector2? position = null,
+        bool includeSelf = false,
+        bool immediate = true)
+        where T : class
+    {
+        SendMessage(
+            message,
+            new MessageOptions
+            {
+                Scope = MessageScope.Spatial,
+                Position = position ?? Position,
+                Range = range,
+                IncludeSender = includeSelf,
+                Immediate = immediate
+            });
+    }
+
+    /// <summary>
+    ///     Cleanup when entity is destroyed.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+    }
+
+    /// <summary>
+    ///     Protected implementation of Dispose pattern.
+    /// </summary>
+    /// <param name="disposing">True if disposing managed resources.</param>
+    private void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+            // Dispose managed resources
+            _messageBus.UnregisterEntity(GetEntityId());
+
+            // Cleanup behaviors
+            foreach (IBehavior behavior in _behaviors)
+            {
+                behavior.Cleanup();
+            }
+
+            _behaviors.Clear();
+            _behaviorsByType.Clear();
+        }
+
+        _disposed = true;
+    }
+
+    private void CacheCustomFields()
+    {
+        HashSet<string> entityInterfaceProps = [.. typeof(ILDtkEntity).GetProperties().Select(p => p.Name)];
+
+        foreach (PropertyInfo prop in _underlyingType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (entityInterfaceProps.Contains(prop.Name) || !prop.CanRead)
+            {
+                continue;
+            }
+
+            var value = prop.GetValue(UnderlyingEntity);
+            if (value != null)
+            {
+                _customFieldCache[prop.Name] = value;
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Get unique entity identifier for messaging.
+    /// </summary>
+    private string GetEntityId()
     {
         return $"{EntityType}_{Iid}";
     }

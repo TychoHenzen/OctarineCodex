@@ -1,7 +1,8 @@
 ﻿// OctarineCodex/Entities/Behaviors/CameraFollowBehavior.cs
 
-using System;
+using System.Collections.Generic;
 using System.Linq;
+using LDtk;
 using Microsoft.Xna.Framework;
 using OctarineCodex.Entities.Messages;
 using OctarineCodex.Maps;
@@ -14,20 +15,12 @@ namespace OctarineCodex.Entities.Behaviors;
 ///     Makes camera follow player via message-based communication for better decoupling
 /// </summary>
 [EntityBehavior(EntityType = "Player", Priority = 900)]
-public class CameraFollowBehavior : EntityBehavior, IMessageHandler<PlayerMovedMessage>
+public class CameraFollowBehavior(
+    ICameraService cameraService,
+    IMapService mapService,
+    IWorldLayerService worldLayerService)
+    : EntityBehavior, IMessageHandler<PlayerMovedMessage>
 {
-    private readonly ICameraService _cameraService;
-    private readonly IMapService _mapService;
-    private readonly IWorldLayerService _worldLayerService;
-
-    public CameraFollowBehavior(ICameraService cameraService, IMapService mapService,
-        IWorldLayerService worldLayerService)
-    {
-        _cameraService = cameraService ?? throw new ArgumentNullException(nameof(cameraService));
-        _mapService = mapService ?? throw new ArgumentNullException(nameof(mapService));
-        _worldLayerService = worldLayerService ?? throw new ArgumentNullException(nameof(worldLayerService));
-    }
-
     /// <summary>
     ///     Handle player movement messages to update camera position
     /// </summary>
@@ -49,21 +42,19 @@ public class CameraFollowBehavior : EntityBehavior, IMessageHandler<PlayerMovedM
         UpdateCameraPosition(Entity.Position);
     }
 
-    public override void Update(GameTime gameTime)
-    {
-        // Camera now updates via PlayerMovedMessage instead of polling position
-    }
-
     private void UpdateCameraPosition(Vector2 playerPosition)
     {
         Vector2 roomPosition;
         Vector2 roomSize;
 
-        if (_mapService.CurrentLevels.Count > 1)
+        if (mapService.CurrentLevels.Count > 1)
         {
             // Multi-level world: calculate current layer bounds
-            var currentLayerLevels = _worldLayerService.GetCurrentLayerLevels();
-            if (!currentLayerLevels.Any()) return;
+            IReadOnlyList<LDtkLevel> currentLayerLevels = worldLayerService.GetCurrentLayerLevels();
+            if (!currentLayerLevels.Any())
+            {
+                return;
+            }
 
             var minX = currentLayerLevels.Min(l => l.WorldX);
             var minY = currentLayerLevels.Min(l => l.WorldY);
@@ -76,12 +67,12 @@ public class CameraFollowBehavior : EntityBehavior, IMessageHandler<PlayerMovedM
         else
         {
             // Single level: use level bounds
-            var bounds = _mapService.GetWorldBounds();
+            RectangleF bounds = mapService.GetWorldBounds();
             roomPosition = new Vector2(bounds.X, bounds.Y);
             roomSize = new Vector2(bounds.Width, bounds.Height);
         }
 
         // Use existing Camera2D follow logic
-        _cameraService.FollowTarget(playerPosition, OctarineConstants.PlayerSize, roomPosition, roomSize);
+        cameraService.FollowTarget(playerPosition, OctarineConstants.PlayerSize, roomPosition, roomSize);
     }
 }

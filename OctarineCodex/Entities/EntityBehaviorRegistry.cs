@@ -55,6 +55,7 @@ public class EntityBehaviorRegistry
     public void ApplyBehaviors(EntityWrapper entity)
     {
         foreach (var descriptor in _behaviors.Where(descriptor => ShouldApplyBehavior(descriptor, entity)))
+        {
             try
             {
                 var behavior = descriptor.Factory();
@@ -65,6 +66,7 @@ public class EntityBehaviorRegistry
             {
                 _logger.Exception(ex, $"Failed to create behavior {descriptor.BehaviorType.Name}");
             }
+        }
     }
 
     private bool ShouldApplyBehavior(BehaviorDescriptor descriptor, EntityWrapper entity)
@@ -72,17 +74,24 @@ public class EntityBehaviorRegistry
         // Fast path: check attribute filters first
         if (!string.IsNullOrEmpty(descriptor.Attribute.EntityType) &&
             !entity.EntityType.Equals(descriptor.Attribute.EntityType, StringComparison.OrdinalIgnoreCase))
+        {
             return false;
+        }
 
         if (descriptor.Attribute.RequiredFields.Length > 0 &&
             !descriptor.Attribute.RequiredFields.All(entity.HasField))
+        {
             return false;
+        }
 
         // Use cache if enabled
         if (descriptor.Attribute.CacheApplicability)
         {
             var cacheKey = $"{descriptor.BehaviorType.Name}:{entity.Uid}:{entity.EntityType}";
-            if (_applicabilityCache.TryGetValue(cacheKey, out var cached)) return cached;
+            if (_applicabilityCache.TryGetValue(cacheKey, out var cached))
+            {
+                return cached;
+            }
 
             var behavior = descriptor.Factory();
             var result = behavior.ShouldApplyTo(entity);

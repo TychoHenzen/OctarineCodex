@@ -7,20 +7,13 @@ using OctarineCodex.Messaging;
 namespace OctarineCodex.Entities.Behaviors;
 
 /// <summary>
-///     Global handler for entity death events - manages loot drops, scoring, and game state
+///     Global handler for entity death events - manages loot drops, scoring, and game state.
 /// </summary>
-public class GlobalEntityDeathHandler : IMessageHandler<EntityDeathMessage>
+public class GlobalEntityDeathHandler(ILoggingService logger) : IMessageHandler<EntityDeathMessage>
 {
-    private readonly ILoggingService _logger;
-
-    public GlobalEntityDeathHandler(ILoggingService logger)
-    {
-        _logger = logger;
-    }
-
     public void HandleMessage(EntityDeathMessage message, string? senderId = null)
     {
-        _logger.Debug($"Entity death detected from {senderId ?? "unknown"}");
+        logger.Debug($"Entity death detected from {senderId ?? "unknown"}");
 
         // Future implementations could:
         // - Drop loot based on entity type
@@ -30,6 +23,6 @@ public class GlobalEntityDeathHandler : IMessageHandler<EntityDeathMessage>
         // - Update game statistics
 
         // For now, just log the event
-        _logger.Info($"Processing entity death for entity: {senderId}");
+        logger.Info($"Processing entity death for entity: {senderId}");
     }
 }

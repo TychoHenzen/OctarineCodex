@@ -7,15 +7,12 @@ using OctarineCodex.Magic;
 
 namespace OctarineCodex.Entities.Behaviors;
 
-public class BehaviorBinding<T> : IBehaviorBinding where T : IBehavior, new()
+public class BehaviorBinding<T>(Func<IServiceProvider, T>? factory = null) : IBehaviorBinding
+    where T : IBehavior, new()
 {
-    private readonly Func<IServiceProvider, T> _factory;
-    private readonly List<Func<EntityWrapper, bool>> _predicates = new();
-
-    public BehaviorBinding(Func<IServiceProvider, T> factory = null)
-    {
-        _factory = factory ?? (services => new T());
-    }
+    private readonly Func<IServiceProvider, T> _factory = factory ?? (_ => new T());
+    private readonly List<Func<EntityWrapper, bool>> _predicates = [];
+    public int Priority { get; private set; }
 
     public bool ShouldApply(EntityWrapper entity)
     {
@@ -26,8 +23,6 @@ public class BehaviorBinding<T> : IBehaviorBinding where T : IBehavior, new()
     {
         return _factory(services);
     }
-
-    public int Priority { get; private set; }
 
     public BehaviorBinding<T> ForEntityType(string entityType)
     {
@@ -41,18 +36,18 @@ public class BehaviorBinding<T> : IBehaviorBinding where T : IBehavior, new()
         return this;
     }
 
-    public BehaviorBinding<T> WithField<TValue>(string fieldName, Func<TValue, bool> condition)
+    public BehaviorBinding<T> WithField<TValue>(string fieldName, Func<TValue?, bool> condition)
     {
         _predicates.Add(entity =>
-            entity.TryGetField<TValue>(fieldName, out var value) && condition(value));
+            entity.TryGetField(fieldName, out TValue? value) && condition(value));
         return this;
     }
 
     public BehaviorBinding<T> WithMagicVector(EleAspects.Element element, float threshold)
     {
         _predicates.Add(entity =>
-            entity.TryGetField<Signature>("magicVector", out var vector) &&
-            vector.GetComponent(element) > threshold);
+            entity.TryGetField("magicVector", out Signature? vector) &&
+            vector?.GetComponent(element) > threshold);
         return this;
     }
 
@@ -60,14 +55,5 @@ public class BehaviorBinding<T> : IBehaviorBinding where T : IBehavior, new()
     {
         Priority = priority;
         return this;
-    }
-}
-
-public static class BehaviorBinding
-{
-    public static BehaviorBinding<T> Create<T>(Func<IServiceProvider, T> factory = null)
-        where T : IBehavior, new()
-    {
-        return new BehaviorBinding<T>(factory);
     }
 }

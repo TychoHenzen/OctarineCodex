@@ -38,7 +38,7 @@ public class HealthBehavior : EntityBehavior
                 TakeDamage(damage.Amount, damage.DamageSource);
                 break;
             case HealMessage heal:
-                Heal(heal.Amount, heal.HealSource);
+                Heal(heal.Amount);
                 break;
         }
     }
@@ -53,10 +53,12 @@ public class HealthBehavior : EntityBehavior
 
         // Send death message globally so other systems can react (loot, scoring, etc.)
         if (_currentHealth <= 0)
+        {
             Entity.SendGlobalMessage(new EntityDeathMessage(Entity.Position, damageSource));
+        }
     }
 
-    private void Heal(int amount, string? healSource = null)
+    private void Heal(int amount)
     {
         var previousHealth = _currentHealth;
         _currentHealth = Math.Min(_maxHealth, _currentHealth + amount);
