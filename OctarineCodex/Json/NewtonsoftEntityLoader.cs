@@ -17,13 +17,19 @@ public static class NewtonsoftEntityLoader
         var entities = new List<T>();
         var targetTypeName = typeof(T).Name;
 
-        if (level.LayerInstances == null) return entities.ToArray();
+        if (level.LayerInstances == null)
+        {
+            return entities.ToArray();
+        }
 
         foreach (var layer in level.LayerInstances)
         {
             foreach (var entityInstance in layer.EntityInstances)
             {
-                if (entityInstance._Identifier != targetTypeName) continue;
+                if (entityInstance._Identifier != targetTypeName)
+                {
+                    continue;
+                }
 
                 try
                 {
@@ -77,12 +83,18 @@ public static class NewtonsoftEntityLoader
         foreach (var field in fieldInstances)
         {
             var propertyInfo = typeof(T).GetProperty(field._Identifier);
-            if (propertyInfo == null) continue;
+            if (propertyInfo == null)
+            {
+                continue;
+            }
 
             try
             {
                 var fieldValue = ParseFieldValue(field, propertyInfo.PropertyType, entity.GetType().Namespace);
-                if (fieldValue != null) propertyInfo.SetValue(entity, fieldValue);
+                if (fieldValue != null)
+                {
+                    propertyInfo.SetValue(entity, fieldValue);
+                }
             }
             catch (Exception ex)
             {
@@ -94,7 +106,10 @@ public static class NewtonsoftEntityLoader
     private static object ParseFieldValue(FieldInstance field, Type targetType, string entityNamespace)
     {
         // Handle null values
-        if (field._Value.ValueKind == JsonValueKind.Null) return null;
+        if (field._Value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
 
         // Convert JsonElement to string for Newtonsoft.Json
         var jsonString = field._Value.GetRawText();
@@ -147,7 +162,11 @@ public static class NewtonsoftEntityLoader
         // Extract "ItemType" from "LocalEnum.ItemType" or "Array<LocalEnum.ItemType>"
         var start = fieldType.IndexOf("LocalEnum.") + "LocalEnum.".Length;
         var end = fieldType.IndexOf('>', start);
-        if (end == -1) end = fieldType.Length;
+        if (end == -1)
+        {
+            end = fieldType.Length;
+        }
+
         return fieldType.Substring(start, end - start);
     }
 

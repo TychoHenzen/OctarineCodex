@@ -10,64 +10,78 @@ using OctarineCodex.Logging;
 namespace OctarineCodex.Messaging;
 
 /// <summary>
-///     Central message bus implementation for inter-entity and global communication
+///     Central message bus implementation for inter-entity and global communication.
 /// </summary>
-public class MessageBus : IMessageBus
+public class MessageBus(ILoggingService logger) : IMessageBus
 {
     private readonly Dictionary<Type, List<object>> _globalHandlers = new();
-    private readonly ILoggingService _logger;
     private readonly ConcurrentQueue<QueuedMessage> _messageQueue = new();
     private readonly Dictionary<string, IMessageReceiver> _registeredEntities = new();
 
-    public MessageBus(ILoggingService logger)
-    {
-        _logger = logger;
-    }
-
-    public void SendMessage<T>(T message, MessageOptions? options = null, string? senderId = null) where T : class
+    public void SendMessage<T>(T message, MessageOptions? options = null, string? senderId = null)
+        where T : class
     {
         options ??= new MessageOptions();
 
         if (options.Immediate)
+        {
             DeliverMessage(message, options, senderId);
+        }
         else
+        {
             _messageQueue.Enqueue(new QueuedMessage(message, options, senderId));
+        }
     }
 
-    public void RegisterHandler<T>(IMessageHandler<T> handler) where T : class
+    public void RegisterHandler<T>(IMessageHandler<T> handler)
+        where T : class
     {
-        var messageType = typeof(T);
-        if (!_globalHandlers.ContainsKey(messageType)) _globalHandlers[messageType] = new List<object>();
-        _globalHandlers[messageType].Add(handler);
+        Type messageType = typeof(T);
+        if (!_globalHandlers.TryGetValue(messageType, out List<object>? value))
+        {
+            value = [];
+            _globalHandlers[messageType] = value;
+        }
 
-        _logger.Debug($"Registered global handler for {messageType.Name}");
+        value.Add(handler);
+
+        logger.Debug($"Registered global handler for {messageType.Name}");
     }
 
-    public void UnregisterHandler<T>(IMessageHandler<T> handler) where T : class
+    public void UnregisterHandler<T>(IMessageHandler<T> handler)
+        where T : class
     {
         var messageType = typeof(T);
         if (_globalHandlers.TryGetValue(messageType, out var handlers))
         {
             handlers.Remove(handler);
-            if (handlers.Count == 0) _globalHandlers.Remove(messageType);
+            if (handlers.Count == 0)
+            {
+                _globalHandlers.Remove(messageType);
+            }
         }
     }
 
     public void RegisterEntity(string entityId, IMessageReceiver receiver)
     {
         _registeredEntities[entityId] = receiver;
-        _logger.Debug($"Registered entity {entityId} for messaging");
+        logger.Debug($"Registered entity {entityId} for messaging");
     }
 
     public void UnregisterEntity(string entityId)
     {
-        if (_registeredEntities.Remove(entityId)) _logger.Debug($"Unregistered entity {entityId}");
+        if (_registeredEntities.Remove(entityId))
+        {
+            logger.Debug($"Unregistered entity {entityId}");
+        }
     }
 
     public void ProcessQueuedMessages()
     {
-        while (_messageQueue.TryDequeue(out var queuedMessage))
+        while (_messageQueue.TryDequeue(out QueuedMessage? queuedMessage))
+        {
             DeliverMessage(queuedMessage.Message, queuedMessage.Options, queuedMessage.SenderId);
+        }
     }
 
     public void Clear()
@@ -76,12 +90,14 @@ public class MessageBus : IMessageBus
         _registeredEntities.Clear();
         while (_messageQueue.TryDequeue(out _))
         {
+            // only dequeue
         }
 
-        _logger.Debug("Cleared all message handlers and entities");
+        logger.Debug("Cleared all message handlers and entities");
     }
 
-    private void DeliverMessage<T>(T message, MessageOptions options, string? senderId) where T : class
+    private void DeliverMessage<T>(T message, MessageOptions options, string? senderId)
+        where T : class
     {
         switch (options.Scope)
         {
@@ -104,53 +120,69 @@ public class MessageBus : IMessageBus
         }
     }
 
-    private void DeliverToTargetEntity<T>(T message, string? targetEntityId, string? senderId) where T : class
+    private void DeliverToTargetEntity<T>(T message, string? targetEntityId, string? senderId)
+        where T : class
     {
         if (string.IsNullOrEmpty(targetEntityId))
         {
-            _logger.Warn("Entity scope message without target entity ID");
+            logger.Warn("Entity scope message without target entity ID");
             return;
         }
 
         if (_registeredEntities.TryGetValue(targetEntityId, out var receiver))
+        {
             receiver.ReceiveMessage(message, senderId);
+        }
         else
-            _logger.Debug($"Target entity {targetEntityId} not found for message {typeof(T).Name}");
+        {
+            logger.Debug($"Target entity {targetEntityId} not found for message {typeof(T).Name}");
+        }
     }
 
-    private void DeliverToGlobalHandlers<T>(T message, string? senderId) where T : class
+    private void DeliverToGlobalHandlers<T>(T message, string? senderId)
+        where T : class
     {
         var messageType = typeof(T);
-        if (_globalHandlers.TryGetValue(messageType, out var handlers))
-            foreach (var handler in handlers.Cast<IMessageHandler<T>>())
-                try
-                {
-                    handler.HandleMessage(message, senderId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.Exception(ex, $"Error in global message handler for {messageType.Name}");
-                }
+        if (!_globalHandlers.TryGetValue(messageType, out var handlers))
+        {
+            return;
+        }
+
+        foreach (var handler in handlers.Cast<IMessageHandler<T>>())
+        {
+            try
+            {
+                handler.HandleMessage(message, senderId);
+            }
+            catch (Exception ex)
+            {
+                logger.Exception(ex, $"Error in global message handler for {messageType.Name}");
+            }
+        }
     }
 
-    private void DeliverToAllEntities<T>(T message, string? senderId) where T : class
+    private void DeliverToAllEntities<T>(T message, string? senderId)
+        where T : class
     {
         foreach (var entity in _registeredEntities.Values)
+        {
             try
             {
                 entity.ReceiveMessage(message, senderId);
             }
             catch (Exception ex)
             {
-                _logger.Exception(ex, $"Error delivering message {typeof(T).Name} to entity");
+                logger.Exception(ex, $"Error delivering message {typeof(T).Name} to entity");
             }
+        }
     }
 
-    private void DeliverToSpatialEntities<T>(T message, MessageOptions options, string? senderId) where T : class
+    private void DeliverToSpatialEntities<T>(T message, MessageOptions options, string? senderId)
+        where T : class
     {
         if (!options.Position.HasValue || !options.Range.HasValue)
         {
-            _logger.Warn("Spatial message without position or range");
+            logger.Warn("Spatial message without position or range");
             return;
         }
 
@@ -162,36 +194,30 @@ public class MessageBus : IMessageBus
         foreach (var (entityId, receiver) in _registeredEntities)
         {
             // Skip sender unless explicitly included
-            if (!options.IncludeSender && entityId == senderId)
-                continue;
-
             var distance = Vector2.DistanceSquared(receiver.Position, centerPosition);
-            if (distance <= rangeSquared)
-                try
-                {
-                    receiver.ReceiveMessage(message, senderId);
-                    entitiesInRange++;
-                }
-                catch (Exception ex)
-                {
-                    _logger.Exception(ex, $"Error delivering spatial message {typeof(T).Name} to entity {entityId}");
-                }
+            if ((!options.IncludeSender && entityId == senderId) || distance > rangeSquared)
+            {
+                continue;
+            }
+
+            try
+            {
+                receiver.ReceiveMessage(message, senderId);
+                entitiesInRange++;
+            }
+            catch (Exception ex)
+            {
+                logger.Exception(ex, $"Error delivering spatial message {typeof(T).Name} to entity {entityId}");
+            }
         }
 
-        _logger.Debug($"Delivered spatial message {typeof(T).Name} to {entitiesInRange} entities within range {range}");
+        logger.Debug($"Delivered spatial message {typeof(T).Name} to {entitiesInRange} entities within range {range}");
     }
 
-    private class QueuedMessage
+    private sealed class QueuedMessage(object message, MessageOptions options, string? senderId)
     {
-        public QueuedMessage(object message, MessageOptions options, string? senderId)
-        {
-            Message = message;
-            Options = options;
-            SenderId = senderId;
-        }
-
-        public object Message { get; }
-        public MessageOptions Options { get; }
-        public string? SenderId { get; }
+        public object Message { get; } = message;
+        public MessageOptions Options { get; } = options;
+        public string? SenderId { get; } = senderId;
     }
 }

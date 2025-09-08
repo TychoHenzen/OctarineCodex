@@ -85,7 +85,10 @@ public class LoggingService : ILoggingService, IDisposable
 
     private void WriteLogEntry(string level, string message, string className, string memberName, int lineNumber)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         lock (_lock)
         {
@@ -110,7 +113,9 @@ public class LoggingService : ILoggingService, IDisposable
     private static string ExtractClassName(string sourceFilePath)
     {
         if (string.IsNullOrEmpty(sourceFilePath))
+        {
             return "Unknown";
+        }
 
         try
         {
@@ -154,8 +159,11 @@ public class LoggingService : ILoggingService, IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
-        
+        if (_disposed)
+        {
+            return;
+        }
+
         WriteLogEntry("INFO", "Session ended", "LoggingService", "Dispose", 0);
         _disposed = true;
     }

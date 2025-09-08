@@ -39,8 +39,8 @@ public class MapService : IMapService
     /// <summary>
     ///     Gets the level containing the specified world position.
     /// </summary>
-    /// <param name="worldPosition">World coordinates to query</param>
-    /// <returns>The level containing the position, or null if no level contains it</returns>
+    /// <param name="worldPosition">World coordinates to query.</param>
+    /// <returns>The level containing the position, or null if no level contains it.</returns>
     public LDtkLevel? GetLevelAt(Vector2 worldPosition)
     {
         return _currentLevels.FirstOrDefault(level =>
@@ -53,26 +53,28 @@ public class MapService : IMapService
     /// <summary>
     ///     Calculates the bounding rectangle that encompasses all loaded levels.
     /// </summary>
-    /// <returns>World bounds rectangle, or empty rectangle if no levels loaded</returns>
-    public RectangleF GetWorldBounds()
+    /// <returns>World bounds rectangle, or empty rectangle if no levels loaded.</returns>
+    public Rectangle GetWorldBounds()
     {
-        if (!_currentLevels.Any())
-            return new RectangleF(0, 0, 0, 0);
+        if (_currentLevels.Count == 0)
+        {
+            return new Rectangle(0, 0, 0, 0);
+        }
 
         var minX = _currentLevels.Min(l => l.WorldX);
         var minY = _currentLevels.Min(l => l.WorldY);
         var maxX = _currentLevels.Max(l => l.WorldX + l.PxWid);
         var maxY = _currentLevels.Max(l => l.WorldY + l.PxHei);
 
-        return new RectangleF(minX, minY, maxX - minX, maxY - minY);
+        return new Rectangle(minX, minY, maxX - minX, maxY - minY);
     }
 
     /// <summary>
     ///     Loads levels from an LDtk file according to the specified options.
     /// </summary>
-    /// <param name="file">The LDtk file to load from</param>
-    /// <param name="options">Loading configuration options</param>
-    /// <returns>True if at least one level was loaded successfully</returns>
+    /// <param name="file">The LDtk file to load from.</param>
+    /// <param name="options">Loading configuration options.</param>
+    /// <returns>True if at least one level was loaded successfully.</returns>
     public bool Load(LDtkFile file, MapLoadOptions? options = null)
     {
         options ??= new MapLoadOptions();
@@ -128,6 +130,7 @@ public class MapService : IMapService
             _logger.Debug($"Found {file.Worlds.Length} world(s) in file");
 
             foreach (var worldDef in file.Worlds)
+            {
                 try
                 {
                     var world = file.LoadWorld(worldDef.Iid);
@@ -141,6 +144,7 @@ public class MapService : IMapService
                 {
                     _logger.Error($"Failed to load world '{worldDef.Identifier}': {ex.Message}");
                 }
+            }
         }
         // Fall back to legacy format (levels directly in project)
         else if (file.Levels != null && file.Levels.Any())

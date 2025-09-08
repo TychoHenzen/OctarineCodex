@@ -30,10 +30,25 @@ public sealed class CompositeInputService : IInputService
         Vector2 direction = Vector2.Zero;
 
         // Keyboard input (WASD)
-        if (_keyboard.IsKeyDown(Keys.W)) direction.Y -= 1f;
-        if (_keyboard.IsKeyDown(Keys.S)) direction.Y += 1f;
-        if (_keyboard.IsKeyDown(Keys.A)) direction.X -= 1f;
-        if (_keyboard.IsKeyDown(Keys.D)) direction.X += 1f;
+        if (_keyboard.IsKeyDown(Keys.W))
+        {
+            direction.Y -= 1f;
+        }
+
+        if (_keyboard.IsKeyDown(Keys.S))
+        {
+            direction.Y += 1f;
+        }
+
+        if (_keyboard.IsKeyDown(Keys.A))
+        {
+            direction.X -= 1f;
+        }
+
+        if (_keyboard.IsKeyDown(Keys.D))
+        {
+            direction.X += 1f;
+        }
 
         // Controller input (left thumbstick)
         if (_controller.IsConnected)

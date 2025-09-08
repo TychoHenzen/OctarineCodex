@@ -105,7 +105,9 @@ public class OctarineGameHost : Game
             _logger.Debug($"File exists: {File.Exists(filePath)}");
 
             if (!File.Exists(filePath))
+            {
                 return null;
+            }
 
             return LDtkFile.FromFile(filePath);
         }
@@ -161,10 +163,14 @@ public class OctarineGameHost : Game
     {
         _inputService.Update(gameTime);
         if (_inputService.IsExitPressed())
+        {
             Exit();
+        }
 
         if (!_mapService.IsLoaded)
+        {
             return;
+        }
 
         // Update all entities (this includes player movement, camera following, and teleportation)
         _entityService.Update(gameTime);
@@ -206,7 +212,9 @@ public class OctarineGameHost : Game
             {
                 var teleportBehavior = player.GetBehavior<PlayerTeleportBehavior>();
                 if (teleportBehavior?.IsTeleportAvailable(out _, out _) == true)
+                {
                     DrawTeleportIndicator(gameTime, player.Position);
+                }
             }
 
             _spriteBatch.End();

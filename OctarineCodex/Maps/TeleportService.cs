@@ -37,8 +37,10 @@ public class TeleportService : ITeleportService
             $"Found {teleportLikeEntities.Count} teleport-like entities: {string.Join(", ", teleportLikeEntities.Select(e => $"{e.EntityType}@{e.Position}"))}");
 
         foreach (var entity in teleportLikeEntities)
+        {
             // Check if entity has a destination field
             if (entity.HasField("destination"))
+            {
                 try
                 {
                     var destination = entity.GetField<EntityReference>("destination");
@@ -46,6 +48,7 @@ public class TeleportService : ITeleportService
                     {
                         var destinationInfo = ResolveDestination(destination);
                         if (destinationInfo.HasValue)
+                        {
                             _teleports.Add(new TeleportData
                             {
                                 Position = entity.Position,
@@ -53,6 +56,7 @@ public class TeleportService : ITeleportService
                                 TargetWorldDepth = destinationInfo.Value.WorldDepth,
                                 TargetPosition = destinationInfo.Value.Position
                             });
+                        }
                         else
                             _logger.Warn($"Could not resolve destination for teleport at {entity.Position}");
                     }
@@ -65,9 +69,13 @@ public class TeleportService : ITeleportService
                 {
                     _logger.Warn($"Failed to get destination field for teleport at {entity.Position}: {ex.Message}");
                 }
+            }
             else
+            {
                 _logger.Debug(
                     $"Teleport-like entity {entity.EntityType} at {entity.Position} has no destination field");
+            }
+        }
 
         _logger.Debug(
             $"Initialized {_teleports.Count} teleports for world layer {_worldLayerService.CurrentWorldDepth}");
@@ -126,12 +134,18 @@ public class TeleportService : ITeleportService
 
     private static EntityInstance? FindEntityInLevel(LDtkLevel level, Guid entityIid)
     {
-        if (level.LayerInstances == null) return null;
+        if (level.LayerInstances == null)
+        {
+            return null;
+        }
 
         foreach (var layer in level.LayerInstances.Where(l => l._Type == LayerType.Entities))
         {
             var entity = layer.EntityInstances.FirstOrDefault(e => e.Iid == entityIid);
-            if (entity != null) return entity;
+            if (entity != null)
+            {
+                return entity;
+            }
         }
 
         return null;

@@ -13,22 +13,22 @@ public interface ICollisionService
     /// <summary>
     ///     Initializes collision data for the specified levels.
     /// </summary>
-    /// <param name="levels">Levels to process for collision</param>
+    /// <param name="levels">Levels to process for collision.</param>
     void InitializeCollision(IEnumerable<LDtkLevel> levels);
 
     /// <summary>
     ///     Checks if a rectangle collides with solid tiles.
     /// </summary>
-    /// <param name="bounds">Rectangle to test</param>
-    /// <returns>True if collision detected</returns>
-    bool CheckCollision(RectangleF bounds);
+    /// <param name="bounds">Rectangle to test.</param>
+    /// <returns>True if collision detected.</returns>
+    bool CheckCollision(Rectangle bounds);
 
     /// <summary>
     ///     Gets corrected position after collision resolution.
     /// </summary>
-    /// <param name="currentPos">Current position</param>
-    /// <param name="newPos">Desired new position</param>
-    /// <param name="size">Entity size</param>
-    /// <returns>Corrected position</returns>
+    /// <param name="currentPos">Current position.</param>
+    /// <param name="newPos">Desired new position.</param>
+    /// <param name="size">Entity size.</param>
+    /// <returns>Corrected position.</returns>
     Vector2 ResolveCollision(Vector2 currentPos, Vector2 newPos, Vector2 size);
 }

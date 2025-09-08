@@ -9,17 +9,17 @@ using OctarineCodex.Logging;
 namespace OctarineCodex;
 
 /// <summary>
-///     Extensions for automatic service discovery and registration via reflection
+///     Extensions for automatic service discovery and registration via reflection.
 /// </summary>
 public static class ServiceDiscoveryExtensions
 {
     /// <summary>
     ///     Automatically registers all services marked with [Service&lt;TImplementation&gt;] attributes
-    ///     from the specified assembly
+    ///     from the specified assembly.
     /// </summary>
-    /// <param name="services">The service collection</param>
-    /// <param name="assembly">Assembly to scan (defaults to executing assembly)</param>
-    /// <returns>The service collection for method chaining</returns>
+    /// <param name="services">The service collection.</param>
+    /// <param name="assembly">Assembly to scan (defaults to executing assembly).</param>
+    /// <returns>The service collection for method chaining.</returns>
     public static IServiceCollection AddServicesFromAssembly(
         this IServiceCollection services,
         Assembly? assembly = null)
@@ -37,12 +37,17 @@ public static class ServiceDiscoveryExtensions
         foreach (var interfaceType in interfacesWithServiceAttribute)
         {
             var serviceInfo = GetServiceAttributeInfo(interfaceType);
-            if (serviceInfo == null) continue;
+            if (serviceInfo == null)
+            {
+                continue;
+            }
 
             // Validate that implementation actually implements the interface
             if (!interfaceType.IsAssignableFrom(serviceInfo.ImplementationType))
+            {
                 throw new InvalidOperationException(
                     $"Implementation type {serviceInfo.ImplementationType.FullName} does not implement interface {interfaceType.FullName}");
+            }
 
             // Register the service with the specified lifetime
             var serviceDescriptor =
@@ -82,7 +87,10 @@ public static class ServiceDiscoveryExtensions
             .FirstOrDefault(attr => attr.GetType().IsGenericType &&
                                     attr.GetType().GetGenericTypeDefinition() == typeof(ServiceAttribute<>));
 
-        if (serviceAttribute == null) return null;
+        if (serviceAttribute == null)
+        {
+            return null;
+        }
 
         // Extract the generic type argument (TImplementation) from ServiceAttribute<TImplementation>
         var attributeType = serviceAttribute.GetType();
@@ -99,13 +107,4 @@ public static class ServiceDiscoveryExtensions
             Lifetime = lifetime
         };
     }
-}
-
-/// <summary>
-///     Helper class to extract service attribute information
-/// </summary>
-internal class ServiceAttributeInfo
-{
-    public Type ImplementationType { get; set; } = null!;
-    public ServiceLifetime Lifetime { get; set; }
 }

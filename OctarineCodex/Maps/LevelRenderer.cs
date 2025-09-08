@@ -15,192 +15,279 @@ namespace OctarineCodex.Maps;
 ///     Unified level renderer that can handle both single and multiple LDtk levels
 ///     with automatic viewport culling and world positioning.
 /// </summary>
-public class LevelRenderer : ILevelRenderer, IDisposable
+public sealed class LevelRenderer(ILoggingService logger) : ILevelRenderer, IDisposable
 {
-    private readonly Dictionary<string, Texture2D> _loadedTextures = new();
+    private readonly Dictionary<string, Texture2D> _loadedTextures = [];
+    private readonly Dictionary<string, Dictionary<int, TileDepthCategory>> _tileDepthCache = [];
+    private LDtkFile? _ldtkFile;
 
-    private readonly ILoggingService _logger;
-    private readonly Dictionary<string, Dictionary<int, TileDepthCategory>> _tileDepthCache = new();
-    private GraphicsDevice? _graphicsDevice;
-    private LDtkFile? _ldtkFile; // Store file reference for definitions
-
-    public LevelRenderer(ILoggingService logger)
+    private enum TileDepthCategory
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        Ground, // Always behind player (floors, shadows)
+        Wall, // Y-sorted with player (wall faces)
+        Foreground // Always in front of player (outlines, overhangs)
     }
+
+    private GraphicsDevice GraphicsDevice { get; set; } = null!;
 
     public void Dispose()
     {
-        foreach (var texture in _loadedTextures.Values.Where(t => t != null))
-            texture?.Dispose();
-        _loadedTextures.Clear();
-        GC.SuppressFinalize(this);
+        Dispose(true);
     }
 
     public void Initialize(GraphicsDevice graphicsDevice)
     {
-        _graphicsDevice = graphicsDevice ?? throw new ArgumentNullException(nameof(graphicsDevice));
+        ArgumentNullException.ThrowIfNull(graphicsDevice);
+        GraphicsDevice = graphicsDevice;
     }
 
     public void SetLDtkContext(LDtkFile file)
     {
+        ArgumentNullException.ThrowIfNull(file);
         _ldtkFile = file;
 
         // Build tile depth cache from enum tags
         BuildTileDepthCache();
 
-        _logger.Debug($"SetLDtkContext called. File has {file?.Defs?.Tilesets?.Length ?? 0} tilesets");
+        logger.Debug($"SetLDtkContext called. File has {file.Defs?.Tilesets?.Length ?? 0} tilesets");
     }
 
     public void LoadTilesets(ContentManager content)
     {
-        if (_graphicsDevice == null)
-            throw new InvalidOperationException("GraphicsDevice must be initialized before loading tilesets");
+        ArgumentNullException.ThrowIfNull(content);
 
-        _logger.Debug($"_ldtkFile is null: {_ldtkFile == null}");
-        _logger.Debug($"_ldtkFile.Defs is null: {_ldtkFile?.Defs == null}");
-        _logger.Debug($"_ldtkFile.Defs.Tilesets is null: {_ldtkFile?.Defs?.Tilesets == null}");
-        _logger.Debug($"Tileset count: {_ldtkFile?.Defs?.Tilesets?.Length ?? 0}");
+        if (GraphicsDevice == null)
+        {
+            throw new InvalidOperationException("GraphicsDevice must be initialized before loading tilesets");
+        }
+
+        logger.Debug($"_ldtkFile is null: {_ldtkFile == null}");
+        logger.Debug($"_ldtkFile.Defs is null: {_ldtkFile?.Defs == null}");
+        logger.Debug($"_ldtkFile.Defs.Tilesets is null: {_ldtkFile?.Defs?.Tilesets == null}");
+        logger.Debug($"Tileset count: {_ldtkFile?.Defs?.Tilesets?.Length ?? 0}");
 
         if (_ldtkFile?.Defs?.Tilesets == null)
         {
-            _logger.Debug("Early return: no tilesets found in _ldtkFile");
+            logger.Debug("Early return: no tilesets found in _ldtkFile");
             return;
         }
 
         // Clear and reload textures
-        foreach (var texture in _loadedTextures.Values.Where(t => t != null))
-            texture?.Dispose();
+        foreach (Texture2D texture in _loadedTextures.Values)
+        {
+            texture.Dispose();
+        }
+
         _loadedTextures.Clear();
 
-        _logger.Debug($"Loading {_ldtkFile.Defs.Tilesets.Length} tilesets...");
+        logger.Debug($"Loading {_ldtkFile.Defs.Tilesets.Length} tilesets...");
 
         // Load tilesets from file definitions
         foreach (var tilesetDef in _ldtkFile.Defs.Tilesets)
         {
             var tilesetKey = $"tileset_{tilesetDef.Uid}";
-            _logger.Debug($"Processing tileset: {tilesetKey}, RelPath: {tilesetDef.RelPath}");
+            logger.Debug($"Processing tileset: {tilesetKey}, RelPath: {tilesetDef.RelPath}");
 
-            if (!_loadedTextures.ContainsKey(tilesetKey))
+            if (_loadedTextures.ContainsKey(tilesetKey))
             {
-                var texture = LoadTilesetTextureAsync(tilesetDef, content);
-                if (texture != null)
-                {
-                    _loadedTextures[tilesetKey] = texture;
-                    _logger.Debug($"Successfully loaded tileset: {tilesetKey} ({texture.Width}x{texture.Height})");
-                }
-                else
-                {
-                    _logger.Debug($"Failed to load tileset: {tilesetKey}");
-                }
+                continue;
+            }
+
+            Texture2D? texture = LoadTilesetTextureAsync(tilesetDef, content);
+            if (texture != null)
+            {
+                _loadedTextures[tilesetKey] = texture;
+                logger.Debug($"Successfully loaded tileset: {tilesetKey} ({texture.Width}x{texture.Height})");
+            }
+            else
+            {
+                logger.Debug($"Failed to load tileset: {tilesetKey}");
             }
         }
 
-        _logger.Debug($"Total loaded textures: {_loadedTextures.Count}");
+        logger.Debug($"Total loaded textures: {_loadedTextures.Count}");
         foreach (var kvp in _loadedTextures)
-            _logger.Debug($"  - {kvp.Key}: {kvp.Value?.Width}x{kvp.Value?.Height}");
+        {
+            logger.Debug($"  - {kvp.Key}: {kvp.Value.Width}x{kvp.Value.Height}");
+        }
     }
 
-    public void RenderForegroundLayers(IEnumerable<LDtkLevel> levels, SpriteBatch spriteBatch, Camera2D camera,
+    public void RenderForegroundLayers(
+        IEnumerable<LDtkLevel> levels,
+        SpriteBatch spriteBatch,
+        Camera2D camera,
         Vector2 playerPosition)
     {
-        if (_graphicsDevice == null || levels == null) return;
+        ArgumentNullException.ThrowIfNull(spriteBatch);
+        ArgumentNullException.ThrowIfNull(camera);
+        ArgumentNullException.ThrowIfNull(levels);
+        ArgumentNullException.ThrowIfNull(GraphicsDevice);
 
         var levelsList = levels.ToList();
-        if (!levelsList.Any()) return;
-
-        // Handle single level rendering
-        if (levelsList.Count == 1)
+        switch (levelsList.Count)
         {
-            RenderSingleLevelForegroundLayers(levelsList[0], spriteBatch, Vector2.Zero, playerPosition);
-            return;
+            case 0:
+                return;
+            case 1:
+                RenderSingleLevelForegroundLayers(levelsList[0], spriteBatch, Vector2.Zero);
+                return;
+            default:
+                RenderWorldLevelsForegroundLayers(levelsList, spriteBatch, camera);
+                break;
         }
-
-        // Handle multi-level world rendering with viewport culling
-        RenderWorldLevelsForegroundLayers(levelsList, spriteBatch, camera, playerPosition);
     }
 
-    public void RenderLevelsBeforePlayer(IEnumerable<LDtkLevel> levels, SpriteBatch spriteBatch, Camera2D camera,
+    public void RenderLevelsBeforePlayer(
+        IEnumerable<LDtkLevel> levels,
+        SpriteBatch spriteBatch,
+        Camera2D camera,
         Vector2 playerPosition)
     {
-        if (_graphicsDevice == null || levels == null) return;
+        ArgumentNullException.ThrowIfNull(spriteBatch);
+        ArgumentNullException.ThrowIfNull(camera);
+        ArgumentNullException.ThrowIfNull(levels);
+        ArgumentNullException.ThrowIfNull(GraphicsDevice);
+        var levelsList = levels.ToList();
+        switch (levelsList.Count)
+        {
+            case 0:
+                return;
+            case 1:
+                RenderSingleLevelBeforePlayer(levelsList[0], spriteBatch, Vector2.Zero, playerPosition);
+                return;
+            default:
+                RenderWorldLevelsBeforePlayer(levelsList, spriteBatch, camera, playerPosition);
+                break;
+        }
+    }
+
+    public void RenderLevelsAfterPlayer(
+        IEnumerable<LDtkLevel> levels,
+        SpriteBatch spriteBatch,
+        Camera2D camera,
+        Vector2 playerPosition)
+    {
+        ArgumentNullException.ThrowIfNull(spriteBatch);
+        ArgumentNullException.ThrowIfNull(camera);
+        ArgumentNullException.ThrowIfNull(levels);
+        ArgumentNullException.ThrowIfNull(GraphicsDevice);
 
         var levelsList = levels.ToList();
-        if (!levelsList.Any()) return;
-
-        // Handle single level rendering (legacy behavior - centered on screen)
-        if (levelsList.Count == 1)
+        switch (levelsList.Count)
         {
-            RenderSingleLevelBeforePlayer(levelsList[0], spriteBatch, Vector2.Zero, playerPosition);
-            return;
+            case 0:
+                return;
+            case 1:
+                RenderSingleLevelAfterPlayer(levelsList[0], spriteBatch, Vector2.Zero, playerPosition);
+                return;
+            default:
+                RenderWorldLevelsAfterPlayer(levelsList, spriteBatch, camera, playerPosition);
+                break;
         }
-
-        // Handle multi-level world rendering with viewport culling
-        RenderWorldLevelsBeforePlayer(levelsList, spriteBatch, camera, playerPosition);
     }
 
-    public void RenderLevelsAfterPlayer(IEnumerable<LDtkLevel> levels, SpriteBatch spriteBatch, Camera2D camera,
-        Vector2 playerPosition)
+    private static TileDepthCategory ParseDepthCategory(string enumValueId)
     {
-        if (_graphicsDevice == null || levels == null) return;
-
-        var levelsList = levels.ToList();
-        if (!levelsList.Any()) return;
-
-        // Handle single level rendering (legacy behavior - centered on screen)
-        if (levelsList.Count == 1)
-        {
-            RenderSingleLevelAfterPlayer(levelsList[0], spriteBatch, Vector2.Zero, playerPosition);
-            return;
-        }
-
-        // Handle multi-level world rendering with viewport culling
-        RenderWorldLevelsAfterPlayer(levelsList, spriteBatch, camera, playerPosition);
+        return Enum
+            .GetValues<TileDepthCategory>()
+            .Single(category => string
+                .Equals(
+                    category.ToString(),
+                    enumValueId,
+                    StringComparison.OrdinalIgnoreCase));
     }
 
-    private void RenderSingleLevelForegroundLayers(LDtkLevel level, SpriteBatch spriteBatch, Vector2 screenCenter,
-        Vector2 playerPosition)
+    private static void RenderTile(
+        TileInstance tile,
+        Texture2D tileset,
+        SpriteBatch spriteBatch,
+        Vector2 offset,
+        int gridSize,
+        Color layerColor)
     {
-        if (level == null) return;
+        var sourceRect = new Rectangle(tile.Src.X, tile.Src.Y, gridSize, gridSize);
+        var destRect = new Rectangle(
+            (int)offset.X + tile.Px.X,
+            (int)offset.Y + tile.Px.Y,
+            gridSize,
+            gridSize);
 
-        if (level.LayerInstances != null)
-            // Render all layers, but only foreground tiles
-            foreach (var layer in level.LayerInstances.Reverse())
+        // Handle tile flipping
+        var effects = SpriteEffects.None;
+        if ((tile.F & 1) != 0)
+        {
+            effects |= SpriteEffects.FlipHorizontally;
+        }
+
+        if ((tile.F & 2) != 0)
+        {
+            effects |= SpriteEffects.FlipVertically;
+        }
+
+        // Apply tile alpha and layer opacity
+        Color tileColor = layerColor * tile.A;
+
+        spriteBatch.Draw(tileset, destRect, sourceRect, tileColor, 0f, Vector2.Zero, effects, 0f);
+    }
+
+    private void RenderSingleLevelForegroundLayers(
+        LDtkLevel level,
+        SpriteBatch spriteBatch,
+        Vector2 screenCenter)
+    {
+        ArgumentNullException.ThrowIfNull(level);
+        ArgumentNullException.ThrowIfNull(spriteBatch);
+        ArgumentNullException.ThrowIfNull(level.LayerInstances);
+
+        // Render all layers, but only foreground tiles
+        foreach (LayerInstance? layer in level.LayerInstances.Reverse())
+        {
+            if (!layer.Visible)
             {
-                if (!layer.Visible) continue;
-                RenderLayerForegroundOnly(layer, spriteBatch, screenCenter, playerPosition);
+                continue;
             }
+
+            RenderLayerForegroundOnly(layer, spriteBatch, screenCenter);
+        }
     }
 
-    private void RenderWorldLevelsForegroundLayers(IReadOnlyList<LDtkLevel> levels, SpriteBatch spriteBatch,
-        Camera2D camera, Vector2 playerPosition)
+    private void RenderWorldLevelsForegroundLayers(
+        IReadOnlyList<LDtkLevel> levels,
+        SpriteBatch spriteBatch,
+        Camera2D camera)
     {
         // Calculate visible bounds from camera position and viewport
         var cameraBounds = new Rectangle(
             (int)camera.Position.X,
             (int)camera.Position.Y,
             (int)camera.ViewportSize.X,
-            (int)camera.ViewportSize.Y
-        );
+            (int)camera.ViewportSize.Y);
 
         foreach (var level in levels)
         {
             var levelBounds = new Rectangle(level.WorldX, level.WorldY, level.PxWid, level.PxHei);
 
             // Only render levels that intersect with camera view (viewport culling)
-            if (cameraBounds.Intersects(levelBounds))
+            if (!cameraBounds.Intersects(levelBounds))
             {
-                var levelOffset = new Vector2(level.WorldX, level.WorldY);
-                RenderSingleLevelForegroundLayers(level, spriteBatch, levelOffset, playerPosition);
+                continue;
             }
+
+            var levelOffset = new Vector2(level.WorldX, level.WorldY);
+            RenderSingleLevelForegroundLayers(level, spriteBatch, levelOffset);
         }
     }
 
-    private void RenderLayerForegroundOnly(LayerInstance layer, SpriteBatch spriteBatch, Vector2 offset,
-        Vector2 playerPosition)
+    private void RenderLayerForegroundOnly(
+        LayerInstance layer,
+        SpriteBatch spriteBatch,
+        Vector2 offset)
     {
         var layerOpacity = layer._Opacity;
-        if (layerOpacity <= 0) return;
+        if (layerOpacity <= 0)
+        {
+            return;
+        }
 
         var layerOffset = offset + new Vector2(layer._PxTotalOffsetX, layer._PxTotalOffsetY);
 
@@ -208,12 +295,15 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         {
             case LayerType.IntGrid:
                 if (layer.AutoLayerTiles.Any())
-                    RenderTileLayerForegroundOnly(layer, spriteBatch, layerOffset, layerOpacity, playerPosition);
+                {
+                    RenderTileLayerForegroundOnly(layer, spriteBatch, layerOffset, layerOpacity);
+                }
+
                 break;
 
             case LayerType.Tiles:
             case LayerType.AutoLayer:
-                RenderTileLayerForegroundOnly(layer, spriteBatch, layerOffset, layerOpacity, playerPosition);
+                RenderTileLayerForegroundOnly(layer, spriteBatch, layerOffset, layerOpacity);
                 break;
 
             case LayerType.Entities:
@@ -222,13 +312,22 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         }
     }
 
-    private void RenderTileLayerForegroundOnly(LayerInstance layer, SpriteBatch spriteBatch, Vector2 offset,
-        float opacity, Vector2 playerPosition)
+    private void RenderTileLayerForegroundOnly(
+        LayerInstance layer,
+        SpriteBatch spriteBatch,
+        Vector2 offset,
+        float opacity)
     {
-        if (!layer._TilesetDefUid.HasValue) return;
+        if (!layer._TilesetDefUid.HasValue)
+        {
+            return;
+        }
 
         var tilesetKey = $"tileset_{layer._TilesetDefUid.Value}";
-        if (!_loadedTextures.TryGetValue(tilesetKey, out var tileset)) return;
+        if (!_loadedTextures.TryGetValue(tilesetKey, out Texture2D? tileset))
+        {
+            return;
+        }
 
         var layerColor = Color.White * opacity;
 
@@ -238,7 +337,9 @@ public class LevelRenderer : ILevelRenderer, IDisposable
 
             // Only render foreground tiles
             if (category == TileDepthCategory.Foreground)
+            {
                 RenderTile(tile, tileset, spriteBatch, offset, layer._GridSize, layerColor);
+            }
         }
     }
 
@@ -246,7 +347,10 @@ public class LevelRenderer : ILevelRenderer, IDisposable
     {
         _tileDepthCache.Clear();
 
-        if (_ldtkFile?.Defs?.Tilesets == null) return;
+        if (_ldtkFile?.Defs?.Tilesets == null)
+        {
+            return;
+        }
 
         foreach (var tileset in _ldtkFile.Defs.Tilesets)
         {
@@ -255,6 +359,7 @@ public class LevelRenderer : ILevelRenderer, IDisposable
 
             // Process enum tags if they exist
             if (tileset.EnumTags != null)
+            {
                 foreach (var enumTag in tileset.EnumTags)
                 {
                     var depthCategory = ParseDepthCategory(enumTag.EnumValueId);
@@ -263,81 +368,87 @@ public class LevelRenderer : ILevelRenderer, IDisposable
                     foreach (var tileId in enumTag.TileIds)
                     {
                         depthMap[tileId] = depthCategory;
-                        _logger.Debug(
+                        logger.Debug(
                             $"Tagged tile {tileId} with tag {enumTag.EnumValueId} in tileset {tilesetKey} as {depthCategory}");
                     }
                 }
+            }
 
             _tileDepthCache[tilesetKey] = depthMap;
         }
 
-        _logger.Debug($"Built depth cache for {_tileDepthCache.Count} tilesets");
-    }
-
-    private TileDepthCategory ParseDepthCategory(string enumValueId)
-    {
-        return enumValueId.ToLowerInvariant() switch
-        {
-            "ground" => TileDepthCategory.Ground,
-            "wall" => TileDepthCategory.Wall,
-            "foreground" => TileDepthCategory.Foreground,
-            _ => TileDepthCategory.Ground // Default to wall (Y-sorted)
-        };
+        logger.Debug($"Built depth cache for {_tileDepthCache.Count} tilesets");
     }
 
     private TileDepthCategory GetTileDepthCategory(int tileId, int? tilesetUid)
     {
         if (!tilesetUid.HasValue)
+        {
             return TileDepthCategory.Wall;
+        }
 
         var tilesetKey = $"tileset_{tilesetUid.Value}";
 
         if (_tileDepthCache.TryGetValue(tilesetKey, out var depthMap) &&
             depthMap.TryGetValue(tileId, out var category))
+        {
             return category;
+        }
 
         // Default: treat untagged tiles as walls (Y-sorted)
         return TileDepthCategory.Ground;
     }
 
-    private void RenderSingleLevelBeforePlayer(LDtkLevel level, SpriteBatch spriteBatch, Vector2 screenCenter,
+    private void RenderSingleLevelBeforePlayer(
+        LDtkLevel level,
+        SpriteBatch spriteBatch,
+        Vector2 screenCenter,
         Vector2 playerPosition)
     {
-        if (level == null) return;
+        ArgumentNullException.ThrowIfNull(level);
+        ArgumentNullException.ThrowIfNull(level.LayerInstances);
+        ArgumentNullException.ThrowIfNull(spriteBatch);
 
         // Draw level background
         var levelBounds = new Rectangle((int)screenCenter.X, (int)screenCenter.Y, level.PxWid, level.PxHei);
         var pixelTexture = GetOrCreatePixelTexture();
         spriteBatch.Draw(pixelTexture, levelBounds, Color.DarkGray * 0.3f);
 
-        if (level.LayerInstances != null)
-            // Render all layers, but filter tiles by depth category
-            foreach (var layer in level.LayerInstances.Reverse())
-            {
-                if (!layer.Visible) continue;
-                RenderLayerBeforePlayer(layer, spriteBatch, screenCenter, playerPosition);
-            }
+        // Render all layers, but filter tiles by depth category
+        foreach (LayerInstance? layer in level.LayerInstances.Reverse().Where(layer => layer.Visible))
+        {
+            RenderLayerBeforePlayer(layer, spriteBatch, screenCenter, playerPosition);
+        }
     }
 
-    private void RenderSingleLevelAfterPlayer(LDtkLevel level, SpriteBatch spriteBatch, Vector2 screenCenter,
+    private void RenderSingleLevelAfterPlayer(
+        LDtkLevel level,
+        SpriteBatch spriteBatch,
+        Vector2 screenCenter,
         Vector2 playerPosition)
     {
-        if (level == null) return;
+        ArgumentNullException.ThrowIfNull(level);
+        ArgumentNullException.ThrowIfNull(level.LayerInstances);
+        ArgumentNullException.ThrowIfNull(spriteBatch);
 
-        if (level.LayerInstances != null)
-            // Render all layers, but filter tiles by depth category  
-            foreach (var layer in level.LayerInstances.Reverse())
-            {
-                if (!layer.Visible) continue;
-                RenderLayerAfterPlayer(layer, spriteBatch, screenCenter, playerPosition);
-            }
+        // Render all layers, but filter tiles by depth category
+        foreach (LayerInstance? layer in level.LayerInstances.Reverse().Where(instance => instance.Visible))
+        {
+            RenderLayerAfterPlayer(layer, spriteBatch, screenCenter, playerPosition);
+        }
     }
 
-    private void RenderLayerBeforePlayer(LayerInstance layer, SpriteBatch spriteBatch, Vector2 offset,
+    private void RenderLayerBeforePlayer(
+        LayerInstance layer,
+        SpriteBatch spriteBatch,
+        Vector2 offset,
         Vector2 playerPosition)
     {
         var layerOpacity = layer._Opacity;
-        if (layerOpacity <= 0) return;
+        if (layerOpacity <= 0)
+        {
+            return;
+        }
 
         var layerOffset = offset + new Vector2(layer._PxTotalOffsetX, layer._PxTotalOffsetY);
 
@@ -345,9 +456,14 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         {
             case LayerType.IntGrid:
                 if (layer.AutoLayerTiles.Any())
+                {
                     RenderTileLayerBeforePlayer(layer, spriteBatch, layerOffset, layerOpacity, playerPosition);
+                }
                 else
+                {
                     RenderIntGridLayer(layer, spriteBatch, layerOffset, layerOpacity);
+                }
+
                 break;
 
             case LayerType.Tiles:
@@ -361,11 +477,17 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         }
     }
 
-    private void RenderLayerAfterPlayer(LayerInstance layer, SpriteBatch spriteBatch, Vector2 offset,
+    private void RenderLayerAfterPlayer(
+        LayerInstance layer,
+        SpriteBatch spriteBatch,
+        Vector2 offset,
         Vector2 playerPosition)
     {
         var layerOpacity = layer._Opacity;
-        if (layerOpacity <= 0) return;
+        if (layerOpacity <= 0)
+        {
+            return;
+        }
 
         var layerOffset = offset + new Vector2(layer._PxTotalOffsetX, layer._PxTotalOffsetY);
 
@@ -373,7 +495,10 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         {
             case LayerType.IntGrid:
                 if (layer.AutoLayerTiles.Any())
+                {
                     RenderTileLayerAfterPlayer(layer, spriteBatch, layerOffset, layerOpacity, playerPosition);
+                }
+
                 break;
 
             case LayerType.Tiles:
@@ -387,16 +512,18 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         }
     }
 
-    private void RenderWorldLevelsBeforePlayer(IReadOnlyList<LDtkLevel> levels, SpriteBatch spriteBatch,
-        Camera2D camera, Vector2 playerPosition)
+    private void RenderWorldLevelsBeforePlayer(
+        IReadOnlyList<LDtkLevel> levels,
+        SpriteBatch spriteBatch,
+        Camera2D camera,
+        Vector2 playerPosition)
     {
         // Calculate visible bounds from camera position and viewport
         var cameraBounds = new Rectangle(
             (int)camera.Position.X,
             (int)camera.Position.Y,
             (int)camera.ViewportSize.X,
-            (int)camera.ViewportSize.Y
-        );
+            (int)camera.ViewportSize.Y);
 
         foreach (var level in levels)
         {
@@ -411,7 +538,10 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         }
     }
 
-    private void RenderWorldLevelsAfterPlayer(IReadOnlyList<LDtkLevel> levels, SpriteBatch spriteBatch, Camera2D camera,
+    private void RenderWorldLevelsAfterPlayer(
+        IReadOnlyList<LDtkLevel> levels,
+        SpriteBatch spriteBatch,
+        Camera2D camera,
         Vector2 playerPosition)
     {
         // Calculate visible bounds from camera position and viewport
@@ -419,8 +549,7 @@ public class LevelRenderer : ILevelRenderer, IDisposable
             (int)camera.Position.X,
             (int)camera.Position.Y,
             (int)camera.ViewportSize.X,
-            (int)camera.ViewportSize.Y
-        );
+            (int)camera.ViewportSize.Y);
 
         foreach (var level in levels)
         {
@@ -435,13 +564,23 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         }
     }
 
-    private void RenderTileLayerBeforePlayer(LayerInstance layer, SpriteBatch spriteBatch, Vector2 offset,
-        float opacity, Vector2 playerPosition)
+    private void RenderTileLayerBeforePlayer(
+        LayerInstance layer,
+        SpriteBatch spriteBatch,
+        Vector2 offset,
+        float opacity,
+        Vector2 playerPosition)
     {
-        if (!layer._TilesetDefUid.HasValue) return;
+        if (!layer._TilesetDefUid.HasValue)
+        {
+            return;
+        }
 
         var tilesetKey = $"tileset_{layer._TilesetDefUid.Value}";
-        if (!_loadedTextures.TryGetValue(tilesetKey, out var tileset)) return;
+        if (!_loadedTextures.TryGetValue(tilesetKey, out Texture2D? tileset))
+        {
+            return;
+        }
 
         var layerColor = Color.White * opacity;
         var playerBottomY = playerPosition.Y + OctarineConstants.PlayerSize;
@@ -456,21 +595,33 @@ public class LevelRenderer : ILevelRenderer, IDisposable
             {
                 TileDepthCategory.Ground => true,
                 TileDepthCategory.Wall => tileBottomY <= playerBottomY,
-                TileDepthCategory.Foreground => false,
                 _ => false
             };
 
-            if (shouldRender) RenderTile(tile, tileset, spriteBatch, offset, layer._GridSize, layerColor);
+            if (shouldRender)
+            {
+                RenderTile(tile, tileset, spriteBatch, offset, layer._GridSize, layerColor);
+            }
         }
     }
 
-    private void RenderTileLayerAfterPlayer(LayerInstance layer, SpriteBatch spriteBatch, Vector2 offset, float opacity,
+    private void RenderTileLayerAfterPlayer(
+        LayerInstance layer,
+        SpriteBatch spriteBatch,
+        Vector2 offset,
+        float opacity,
         Vector2 playerPosition)
     {
-        if (!layer._TilesetDefUid.HasValue) return;
+        if (!layer._TilesetDefUid.HasValue)
+        {
+            return;
+        }
 
         var tilesetKey = $"tileset_{layer._TilesetDefUid.Value}";
-        if (!_loadedTextures.TryGetValue(tilesetKey, out var tileset)) return;
+        if (!_loadedTextures.TryGetValue(tilesetKey, out Texture2D? tileset))
+        {
+            return;
+        }
 
         var layerColor = Color.White * opacity;
         var playerBottomY = playerPosition.Y + OctarineConstants.PlayerSize;
@@ -483,36 +634,15 @@ public class LevelRenderer : ILevelRenderer, IDisposable
 
             var shouldRender = category switch
             {
-                TileDepthCategory.Ground => false,
-                TileDepthCategory.Wall => tileBottomY > playerBottomY, // Only wall tiles in front of player
-                TileDepthCategory.Foreground => false, // Foreground tiles handled in separate pass
+                TileDepthCategory.Wall => tileBottomY > playerBottomY,
                 _ => false
             };
 
-            if (shouldRender) RenderTile(tile, tileset, spriteBatch, offset, layer._GridSize, layerColor);
+            if (shouldRender)
+            {
+                RenderTile(tile, tileset, spriteBatch, offset, layer._GridSize, layerColor);
+            }
         }
-    }
-
-    private void RenderTile(TileInstance tile, Texture2D tileset, SpriteBatch spriteBatch, Vector2 offset, int gridSize,
-        Color layerColor)
-    {
-        var sourceRect = new Rectangle(tile.Src.X, tile.Src.Y, gridSize, gridSize);
-        var destRect = new Rectangle(
-            (int)offset.X + tile.Px.X,
-            (int)offset.Y + tile.Px.Y,
-            gridSize,
-            gridSize
-        );
-
-        // Handle tile flipping
-        var effects = SpriteEffects.None;
-        if ((tile.F & 1) != 0) effects |= SpriteEffects.FlipHorizontally;
-        if ((tile.F & 2) != 0) effects |= SpriteEffects.FlipVertically;
-
-        // Apply tile alpha and layer opacity
-        var tileColor = layerColor * tile.A;
-
-        spriteBatch.Draw(tileset, destRect, sourceRect, tileColor, 0f, Vector2.Zero, effects, 0f);
     }
 
     private void RenderIntGridLayer(LayerInstance layer, SpriteBatch spriteBatch, Vector2 offset, float opacity)
@@ -524,10 +654,13 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         for (var i = 0; i < layer.IntGridCsv.Length; i++)
         {
             var value = layer.IntGridCsv[i];
-            if (value == 0) continue;
+            if (value == 0)
+            {
+                continue;
+            }
 
-            var x = (int)offset.X + i % layer._CWid * layer._GridSize;
-            var y = (int)offset.Y + i / layer._CWid * layer._GridSize;
+            var x = (int)offset.X + (i % layer._CWid * layer._GridSize);
+            var y = (int)offset.Y + (i / layer._CWid * layer._GridSize);
             var color = baseColors[Math.Min(value, baseColors.Length - 1)] * (0.6f * opacity);
 
             var destRect = new Rectangle(x, y, layer._GridSize, layer._GridSize);
@@ -536,7 +669,9 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         }
 
         if (cellsRendered > 0)
-            _logger.Debug($"Rendered {cellsRendered} IntGrid cells for layer {layer._Identifier}");
+        {
+            logger.Debug($"Rendered {cellsRendered} IntGrid cells for layer {layer._Identifier}");
+        }
     }
 
     private Texture2D? LoadTilesetTextureAsync(TilesetDefinition tilesetDef, ContentManager content)
@@ -545,39 +680,44 @@ public class LevelRenderer : ILevelRenderer, IDisposable
         {
             if (string.IsNullOrEmpty(tilesetDef.RelPath))
             {
-                _logger.Debug($"Empty RelPath for tileset UID {tilesetDef.Uid}");
+                logger.Debug($"Empty RelPath for tileset UID {tilesetDef.Uid}");
                 return null;
             }
 
             var fileName = Path.GetFileNameWithoutExtension(tilesetDef.RelPath);
-            _logger.Debug($"Attempting to load texture for file: {fileName}");
+            logger.Debug($"Attempting to load texture for file: {fileName}");
 
             // Try different content paths
             var possiblePaths = new[]
             {
                 fileName, // "TopDown_by_deepnight"
                 $"atlas/{fileName}", // Keep existing fallbacks
-                $"tilesets/{fileName}",
-                $"sprites/{fileName}"
+                $"tilesets/{fileName}", $"sprites/{fileName}"
             };
 
             foreach (var path in possiblePaths)
+            {
                 try
                 {
                     var texture = content.Load<Texture2D>(path);
-                    _logger.Debug($"Successfully loaded texture from content pipeline: {path}");
+                    logger.Debug($"Successfully loaded texture from content pipeline: {path}");
                     return texture;
                 }
-                catch (Exception ex)
+                catch (ContentLoadException ex)
                 {
-                    _logger.Debug($"Failed to load texture path '{path}': {ex.Message}");
+                    logger.Debug($"Failed to load texture path '{path}': {ex.Message}");
                 }
+                catch (InvalidOperationException ex)
+                {
+                    logger.Debug($"Failed to load texture path '{path}': {ex.Message}");
+                }
+            }
 
-            _logger.Debug(
+            logger.Debug(
                 $"All content pipeline paths failed, creating debug texture ({tilesetDef.PxWid}x{tilesetDef.PxHei})");
 
             // If all content pipeline attempts fail, create a debug texture with correct dimensions
-            var debugTexture = new Texture2D(_graphicsDevice!, tilesetDef.PxWid, tilesetDef.PxHei);
+            var debugTexture = new Texture2D(GraphicsDevice, tilesetDef.PxWid, tilesetDef.PxHei);
             var colorData = new Color[tilesetDef.PxWid * tilesetDef.PxHei];
 
             // Create a pattern to help identify missing tilesets
@@ -591,32 +731,43 @@ public class LevelRenderer : ILevelRenderer, IDisposable
             }
 
             debugTexture.SetData(colorData);
-            _logger.Debug($"Created debug checkerboard texture ({debugTexture.Width}x{debugTexture.Height})");
+            logger.Debug($"Created debug checkerboard texture ({debugTexture.Width}x{debugTexture.Height})");
             return debugTexture;
         }
         catch (Exception ex)
         {
-            _logger.Error($"Failed to create any texture for tileset {tilesetDef.RelPath}: {ex.Message}");
+            logger.Error($"Failed to create any texture for tileset {tilesetDef.RelPath}: {ex.Message}");
             return null;
         }
     }
 
     private Texture2D GetOrCreatePixelTexture()
     {
-        if (!_loadedTextures.ContainsKey("__pixel__"))
+        if (_loadedTextures.TryGetValue("__pixel__", out Texture2D? value))
         {
-            var texture = new Texture2D(_graphicsDevice!, 1, 1);
-            texture.SetData(new[] { Color.White });
-            _loadedTextures["__pixel__"] = texture;
+            return value;
         }
 
-        return _loadedTextures["__pixel__"];
+        var texture = new Texture2D(GraphicsDevice, 1, 1);
+        texture.SetData([Color.White]);
+        value = texture;
+        _loadedTextures["__pixel__"] = value;
+
+        return value;
     }
 
-    private enum TileDepthCategory
+    private void Dispose(bool disposing)
     {
-        Ground, // Always behind player (floors, shadows)
-        Wall, // Y-sorted with player (wall faces)
-        Foreground // Always in front of player (outlines, overhangs)
+        if (!disposing)
+        {
+            return;
+        }
+
+        foreach (Texture2D texture in _loadedTextures.Values)
+        {
+            texture.Dispose();
+        }
+
+        _loadedTextures.Clear();
     }
 }

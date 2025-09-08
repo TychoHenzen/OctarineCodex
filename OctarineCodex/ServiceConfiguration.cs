@@ -34,7 +34,7 @@ public static class ServiceConfiguration
     }
 
     /// <summary>
-    ///     Register services that require custom configuration and cannot be auto-discovered
+    ///     Register services that require custom configuration and cannot be auto-discovered.
     /// </summary>
     private static IServiceCollection AddCustomServices(this IServiceCollection services)
     {
@@ -48,7 +48,7 @@ public static class ServiceConfiguration
     }
 
     /// <summary>
-    ///     Initialize systems that require post-registration setup
+    ///     Initialize systems that require post-registration setup.
     /// </summary>
     public static void InitializeGameSystems(IServiceProvider services)
     {

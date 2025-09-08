@@ -89,24 +89,34 @@ public class Camera2D
 
         // First check if player is actually inside the room
         if (!roomBounds.Contains(playerBounds))
+        {
             // Player is outside room bounds, not "near edge" in the intended sense
             return false;
+        }
 
         // Check if player is near left edge
         if (playerBounds.Left - roomBounds.Left <= edgeThreshold)
+        {
             return true;
+        }
 
         // Check if player is near right edge
         if (roomBounds.Right - playerBounds.Right <= edgeThreshold)
+        {
             return true;
+        }
 
         // Check if player is near top edge
         if (playerBounds.Top - roomBounds.Top <= edgeThreshold)
+        {
             return true;
+        }
 
         // Check if player is near bottom edge
         if (roomBounds.Bottom - playerBounds.Bottom <= edgeThreshold)
+        {
             return true;
+        }
 
         return false;
     }

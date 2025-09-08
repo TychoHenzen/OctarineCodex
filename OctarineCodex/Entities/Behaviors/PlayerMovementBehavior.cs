@@ -48,7 +48,7 @@ public class PlayerMovementBehavior(
         else
         {
             // Single level: simple bounds checking
-            RectangleF bounds = mapService.GetWorldBounds();
+            Rectangle bounds = mapService.GetWorldBounds();
             correctedPos = new Vector2(
                 MathHelper.Clamp(newPos.X, bounds.X, bounds.X + bounds.Width - OctarineConstants.PlayerSize),
                 MathHelper.Clamp(newPos.Y, bounds.Y, bounds.Y + bounds.Height - OctarineConstants.PlayerSize));

@@ -12,7 +12,7 @@ public abstract class EntityBehavior : IBehavior
     protected EntityWrapper Entity { get; private set; } = null!;
 
     /// <summary>
-    ///     Called once when the behavior is attached to an entity
+    ///     Called once when the behavior is attached to an entity.
     /// </summary>
     public virtual void Initialize(EntityWrapper entity)
     {
@@ -20,7 +20,7 @@ public abstract class EntityBehavior : IBehavior
     }
 
     /// <summary>
-    ///     Called when the behavior is removed from an entity
+    ///     Called when the behavior is removed from an entity.
     /// </summary>
     public virtual void Cleanup()
     {
@@ -28,7 +28,7 @@ public abstract class EntityBehavior : IBehavior
     }
 
     /// <summary>
-    ///     Handle messages sent to this entity
+    ///     Handle messages sent to this entity.
     /// </summary>
     public virtual void OnMessage<T>(T message)
         where T : class
@@ -37,7 +37,7 @@ public abstract class EntityBehavior : IBehavior
     }
 
     /// <summary>
-    ///     Called every frame for active behaviors
+    ///     Called every frame for active behaviors.
     /// </summary>
     public virtual void Update(GameTime gameTime)
     {
@@ -50,7 +50,7 @@ public abstract class EntityBehavior : IBehavior
     }
 
     /// <summary>
-    ///     Determines if this behavior should be applied to the given entity
+    ///     Determines if this behavior should be applied to the given entity.
     /// </summary>
     public abstract bool ShouldApplyTo(EntityWrapper entity);
 

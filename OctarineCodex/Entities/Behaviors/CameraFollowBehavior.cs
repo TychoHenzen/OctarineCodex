@@ -12,7 +12,7 @@ using OctarineCodex.Services;
 namespace OctarineCodex.Entities.Behaviors;
 
 /// <summary>
-///     Makes camera follow player via message-based communication for better decoupling
+///     Makes camera follow player via message-based communication for better decoupling.
 /// </summary>
 [EntityBehavior(EntityType = "Player", Priority = 900)]
 public class CameraFollowBehavior(
@@ -22,7 +22,7 @@ public class CameraFollowBehavior(
     : EntityBehavior, IMessageHandler<PlayerMovedMessage>
 {
     /// <summary>
-    ///     Handle player movement messages to update camera position
+    ///     Handle player movement messages to update camera position.
     /// </summary>
     public void HandleMessage(PlayerMovedMessage message, string? senderId = null)
     {
@@ -67,7 +67,7 @@ public class CameraFollowBehavior(
         else
         {
             // Single level: use level bounds
-            RectangleF bounds = mapService.GetWorldBounds();
+            Rectangle bounds = mapService.GetWorldBounds();
             roomPosition = new Vector2(bounds.X, bounds.Y);
             roomSize = new Vector2(bounds.Width, bounds.Height);
         }

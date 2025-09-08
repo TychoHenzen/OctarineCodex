@@ -4,7 +4,7 @@ using OctarineCodex.Player;
 namespace OctarineCodex.Services;
 
 /// <summary>
-///     Service implementation for camera management
+///     Service implementation for camera management.
 /// </summary>
 public class CameraService : ICameraService
 {

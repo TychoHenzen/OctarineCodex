@@ -9,12 +9,12 @@ using OctarineCodex.Logging;
 namespace OctarineCodex.Messaging;
 
 /// <summary>
-///     Extensions for configuring the messaging system with dependency injection
+///     Extensions for configuring the messaging system with dependency injection.
 /// </summary>
 public static class MessagingExtensions
 {
     /// <summary>
-    ///     Auto-register message handlers from the executing assembly
+    ///     Auto-register message handlers from the executing assembly.
     /// </summary>
     public static void InitializeMessageHandlers(IServiceProvider services)
     {
@@ -33,6 +33,7 @@ public static class MessagingExtensions
         var successfulRegistrations = 0;
 
         foreach (var handlerType in handlerTypes)
+        {
             try
             {
                 var handler = ActivatorUtilities.CreateInstance(services, handlerType); // Use DI here too
@@ -56,6 +57,7 @@ public static class MessagingExtensions
             {
                 logger.Exception(ex, $"Failed to create instance of message handler {handlerType.Name}");
             }
+        }
 
         logger.Info(
             $"Successfully registered {successfulRegistrations} message handlers from {handlerTypes.Count} handler types");
