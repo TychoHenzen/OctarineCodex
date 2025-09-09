@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using LDtk;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Entities.Messages;
 using OctarineCodex.Maps;
+using OctarineCodex.Messages;
 using OctarineCodex.Messaging;
 using OctarineCodex.Services;
 

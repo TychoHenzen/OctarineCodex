@@ -48,9 +48,6 @@ public class EntityService(
 
     public void InitializeEntities(IEnumerable<LDtkLevel> levels)
     {
-        var levelCount = levels.Count();
-        logger.Debug($"Initializing entities from {levelCount} levels");
-
         // Clear existing entities and message bus registrations
         DisposeAllEntities();
 
@@ -62,12 +59,8 @@ public class EntityService(
                 EntityWrapper wrapper = entityWrapperFactory.CreateWrapper(entity);
                 behaviorRegistry.ApplyBehaviors(wrapper);
                 _allEntities.Add(wrapper);
-
-                logger.Debug($"Initialized entity {wrapper.EntityType} at {wrapper.Position}");
             }
         }
-
-        logger.Debug($"Initialized {_allEntities.Count} total entities");
     }
 
     public void UpdateEntitiesForCurrentLayer(IEnumerable<LDtkLevel> currentLayerLevels)
@@ -143,9 +136,6 @@ public class EntityService(
             .Where(e => e.EntityType.Equals(typeName, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        logger.Debug(
-            $"GetGeneratedEntitiesOfType<{typeName}>: Found {matchingEntities.Count} matching entities out of {_allEntities.Count} total entities");
-
         var results = new List<T>();
         foreach (var entity in matchingEntities)
         {
@@ -153,8 +143,6 @@ public class EntityService(
             {
                 var castedEntity = (T)entity.UnderlyingEntity;
                 results.Add(castedEntity);
-                logger.Debug(
-                    $"Successfully cast entity {entity.EntityType} at {entity.Position} to type {typeof(T).Name}");
             }
             catch (InvalidCastException ex)
             {
@@ -202,8 +190,7 @@ public class EntityService(
             return entities;
         }
 
-        var targetNamespace = Path.GetFileNameWithoutExtension(level.WorldFilePath);
-        var entityTypes = GetValidEntityTypes(targetNamespace);
+        List<Type> entityTypes = GetValidEntityTypes();
 
         foreach (var entityType in entityTypes)
         {
@@ -217,12 +204,11 @@ public class EntityService(
                     continue;
                 }
 
-                if (method.Invoke(null, [level]) is not Array { Length: > 0 } entityArray)
+                if (method.Invoke(null, [level, logger]) is not Array { Length: > 0 } entityArray)
                 {
                     continue;
                 }
 
-                logger.Debug($"Found {entityArray.Length} entities of type {entityType.Name}");
                 entities.AddRange(entityArray.Cast<ILDtkEntity>());
             }
             catch (TargetInvocationException ex)
@@ -232,12 +218,10 @@ public class EntityService(
                     $"Failed to get entities of type {entityType.Name} from level {level.Identifier}");
             }
         }
-
-        logger.Debug($"Found {entities.Count} total entities in level {level.Identifier}");
         return entities;
     }
 
-    private List<Type> GetValidEntityTypes(string targetNamespace)
+    private List<Type> GetValidEntityTypes()
     {
         try
         {
@@ -246,9 +230,6 @@ public class EntityService(
                 .Where(t => typeof(ILDtkEntity).IsAssignableFrom(t) &&
                             t is { IsInterface: false, IsAbstract: false })
                 .ToList();
-
-            logger.Debug(
-                $"Found {validTypes.Count} valid entity types in namespace {targetNamespace}: {string.Join(", ", validTypes.Select(t => t.Name))}");
             return validTypes;
         }
         catch (Exception ex)

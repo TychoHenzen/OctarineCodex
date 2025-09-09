@@ -8,32 +8,23 @@ using OctarineCodex.Logging;
 
 namespace OctarineCodex.Maps;
 
-public class TeleportService : ITeleportService
+public class TeleportService(IEntityService entityService, IWorldLayerService worldLayerService, ILoggingService logger)
+    : ITeleportService
 {
-    private readonly IEntityService _entityService;
-    private readonly ILoggingService _logger;
-    private readonly List<TeleportData> _teleports = new();
-    private readonly IWorldLayerService _worldLayerService;
-
-    public TeleportService(IEntityService entityService, IWorldLayerService worldLayerService, ILoggingService logger)
-    {
-        _entityService = entityService;
-        _worldLayerService = worldLayerService;
-        _logger = logger;
-    }
+    private readonly List<TeleportData> _teleports = [];
 
     public void InitializeTeleports()
     {
         _teleports.Clear();
 
         // Get all entity wrappers to check for teleport-like entities
-        var allEntities = _entityService.GetAllEntities();
-        _logger.Debug($"TeleportService: Checking {allEntities.Count()} total entities for teleports");
+        IEnumerable<EntityWrapper> allEntities = entityService.GetAllEntities();
+        logger.Debug($"TeleportService: Checking {allEntities.Count()} total entities for teleports");
 
         var teleportLikeEntities = allEntities.Where(e =>
             e.EntityType.ToLowerInvariant().Contains("teleport")).ToList();
 
-        _logger.Debug(
+        logger.Debug(
             $"Found {teleportLikeEntities.Count} teleport-like entities: {string.Join(", ", teleportLikeEntities.Select(e => $"{e.EntityType}@{e.Position}"))}");
 
         foreach (var entity in teleportLikeEntities)
@@ -58,27 +49,27 @@ public class TeleportService : ITeleportService
                             });
                         }
                         else
-                            _logger.Warn($"Could not resolve destination for teleport at {entity.Position}");
+                            logger.Warn($"Could not resolve destination for teleport at {entity.Position}");
                     }
                     else
                     {
-                        _logger.Debug($"Teleport at {entity.Position} has null destination");
+                        logger.Debug($"Teleport at {entity.Position} has null destination");
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warn($"Failed to get destination field for teleport at {entity.Position}: {ex.Message}");
+                    logger.Warn($"Failed to get destination field for teleport at {entity.Position}: {ex.Message}");
                 }
             }
             else
             {
-                _logger.Debug(
+                logger.Debug(
                     $"Teleport-like entity {entity.EntityType} at {entity.Position} has no destination field");
             }
         }
 
-        _logger.Debug(
-            $"Initialized {_teleports.Count} teleports for world layer {_worldLayerService.CurrentWorldDepth}");
+        logger.Debug(
+            $"Initialized {_teleports.Count} teleports for world layer {worldLayerService.CurrentWorldDepth}");
     }
 
     public bool IsTeleportAvailable(Vector2 playerPosition, out int targetWorldDepth, out Vector2? targetPosition)
@@ -94,11 +85,11 @@ public class TeleportService : ITeleportService
 
         if (inRange && inputPressed)
         {
-            _logger.Debug($"Player activated teleport to world depth {targetWorldDepth} at {targetPosition}");
+            logger.Debug($"Player activated teleport to world depth {targetWorldDepth} at {targetPosition}");
             return true;
         }
 
-        targetWorldDepth = _worldLayerService.CurrentWorldDepth;
+        targetWorldDepth = worldLayerService.CurrentWorldDepth;
         targetPosition = null;
         return false;
     }
@@ -106,12 +97,12 @@ public class TeleportService : ITeleportService
     private (Vector2 Position, int WorldDepth)? ResolveDestination(EntityReference entityRef)
     {
         // Find the target level using the LevelIid
-        var allLevels = _worldLayerService.GetAllLevels();
+        IReadOnlyList<LDtkLevel> allLevels = worldLayerService.GetAllLevels();
         var targetLevel = allLevels.FirstOrDefault(l => l.Iid == entityRef.LevelIid);
 
         if (targetLevel == null)
         {
-            _logger.Warn($"Could not find target level with IID {entityRef.LevelIid}");
+            logger.Warn($"Could not find target level with IID {entityRef.LevelIid}");
             return null;
         }
 
@@ -119,7 +110,7 @@ public class TeleportService : ITeleportService
         var targetEntity = FindEntityInLevel(targetLevel, entityRef.EntityIid);
         if (targetEntity == null)
         {
-            _logger.Warn(
+            logger.Warn(
                 $"Could not find target entity with IID {entityRef.EntityIid} in level {targetLevel.Identifier}");
             return null;
         }
@@ -153,7 +144,7 @@ public class TeleportService : ITeleportService
 
     private bool CheckTeleportProximity(Vector2 playerPosition, out int targetWorldDepth, out Vector2? targetPosition)
     {
-        targetWorldDepth = _worldLayerService.CurrentWorldDepth;
+        targetWorldDepth = worldLayerService.CurrentWorldDepth;
         targetPosition = null;
 
         const float interactionDistance = 48f; // Increased from 16 to 48 pixels for easier interaction

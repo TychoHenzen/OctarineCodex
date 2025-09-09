@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Entities.Messages;
+namespace OctarineCodex.Messages;
 
 public class PlayerMovedMessage(Vector2 newPosition, Vector2 delta)
 {

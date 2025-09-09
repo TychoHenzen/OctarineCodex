@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using OctarineCodex.Services;
 
 namespace OctarineCodex.Logging;
 

@@ -2,7 +2,7 @@
 
 using System;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Entities.Messages;
+using OctarineCodex.Messages;
 
 namespace OctarineCodex.Entities.Behaviors;
 

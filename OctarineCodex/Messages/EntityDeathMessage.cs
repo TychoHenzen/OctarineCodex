@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Entities.Messages;
+namespace OctarineCodex.Messages;
 
 public class EntityDeathMessage(Vector2? deathPosition = null, string? causeOfDeath = null)
 {

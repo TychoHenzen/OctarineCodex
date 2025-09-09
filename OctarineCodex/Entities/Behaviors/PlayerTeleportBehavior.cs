@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using JetBrains.Annotations;
 using LDtk;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Entities.Messages;
+using OctarineCodex.Collisions;
 using OctarineCodex.Input;
 using OctarineCodex.Logging;
 using OctarineCodex.Maps;
+using OctarineCodex.Messages;
 
 namespace OctarineCodex.Entities.Behaviors;
 
@@ -20,7 +21,7 @@ public class PlayerTeleportBehavior(
     IInputService inputService,
     ITeleportService teleportService,
     IWorldLayerService worldLayerService,
-    ICollisionService collisionService,
+    ICollisionSystem collisionSystem,
     IEntityService entityService,
     ILoggingService logger,
     IMapService mapService)
@@ -54,7 +55,7 @@ public class PlayerTeleportBehavior(
 
         // Update all systems for new layer FIRST
         IReadOnlyList<LDtkLevel> newLayerLevels = worldLayerService.GetCurrentLayerLevels();
-        collisionService.InitializeCollision(newLayerLevels);
+        collisionSystem.InitializeLevels(newLayerLevels);
         entityService.UpdateEntitiesForCurrentLayer(newLayerLevels);
         teleportService.InitializeTeleports();
 

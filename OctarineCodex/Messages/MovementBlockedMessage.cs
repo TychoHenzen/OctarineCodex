@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Entities.Messages;
+namespace OctarineCodex.Messages;
 
 public class MovementBlockedMessage(Vector2 intendedDirection, Vector2 intendedDelta, string? blockingReason = null)
 {

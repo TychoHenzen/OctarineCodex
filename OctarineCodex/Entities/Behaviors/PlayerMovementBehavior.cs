@@ -1,29 +1,53 @@
 ﻿// OctarineCodex/Entities/Behaviors/PlayerMovementBehavior.cs
 
 using Microsoft.Xna.Framework;
-using OctarineCodex.Entities.Messages;
+using OctarineCodex.Collisions;
 using OctarineCodex.Input;
-using OctarineCodex.Maps;
+using OctarineCodex.Messages;
 
 namespace OctarineCodex.Entities.Behaviors;
 
-/// <summary>
-///     Handles player movement input and physics using existing Movement logic.
-/// </summary>
 [EntityBehavior(EntityType = "Player", Priority = 1000)]
 public class PlayerMovementBehavior(
     IInputService inputService,
-    ICollisionService collisionService,
-    IMapService mapService)
+    ICollisionSystem collisionSystem)
     : EntityBehavior
 {
+    private bool _hasCollisionComponent;
+    private string _entityId = string.Empty;
+
     public override bool ShouldApplyTo(EntityWrapper entity)
     {
         return HasEntityType(entity, "Player");
     }
 
+    public override void Initialize(EntityWrapper entity)
+    {
+        base.Initialize(entity);
+
+        // Convert Guid to string for entity ID
+        _entityId = Entity.Iid.ToString();
+
+        // Register player with collision system
+        var playerShape = new BoxShape(
+            new Rectangle(0, 0, OctarineConstants.PlayerSize, OctarineConstants.PlayerSize));
+
+        var collisionComponent = new CollisionComponent(playerShape, CollisionLayers.Entity)
+        {
+            CollidesWith = CollisionLayers.Solid | CollisionLayers.Platform, IsStatic = false
+        };
+
+        collisionSystem.RegisterEntity(_entityId, collisionComponent, Entity.Position);
+        _hasCollisionComponent = true;
+    }
+
     public override void Update(GameTime gameTime)
     {
+        if (_hasCollisionComponent)
+        {
+            EnsureRegisteredWithCollisionSystem();
+        }
+
         var dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
         Vector2 dir = inputService.GetMovementDirection();
         Vector2 delta = ComputeDelta(dir, OctarineConstants.PlayerSpeed, dt);
@@ -33,43 +57,36 @@ public class PlayerMovementBehavior(
             return;
         }
 
-        // Calculate new position
-        var newPos = Entity.Position + delta;
         var previousPos = Entity.Position;
+        Vector2 desiredPos = Entity.Position + delta;
 
-        // Handle collision resolution
-        Vector2 correctedPos;
-        if (mapService.CurrentLevels.Count > 1)
-        {
-            // Multi-level world: use collision service
-            correctedPos = collisionService.ResolveCollision(
-                Entity.Position, newPos, new Vector2(OctarineConstants.PlayerSize, OctarineConstants.PlayerSize));
-        }
-        else
-        {
-            // Single level: simple bounds checking
-            Rectangle bounds = mapService.GetWorldBounds();
-            correctedPos = new Vector2(
-                MathHelper.Clamp(newPos.X, bounds.X, bounds.X + bounds.Width - OctarineConstants.PlayerSize),
-                MathHelper.Clamp(newPos.Y, bounds.Y, bounds.Y + bounds.Height - OctarineConstants.PlayerSize));
-        }
+        // Use new collision system for movement resolution
+        Vector2 correctedPos = collisionSystem.ResolveMovement(_entityId, Entity.Position, desiredPos);
 
-        // Update entity position
         Entity.Position = correctedPos;
+        collisionSystem.UpdateEntityPosition(_entityId, correctedPos);
 
         // Send movement messages
-        if (correctedPos != newPos)
+        if (correctedPos != desiredPos)
         {
-            Entity.SendMessage(new MovementBlockedMessage(dir, delta));
+            Entity.SendMessage(new MovementBlockedMessage(dir, delta, "Collision"));
         }
 
-        if (correctedPos == previousPos)
+        if (correctedPos != previousPos)
         {
-            return;
+            Vector2 actualDelta = correctedPos - previousPos;
+            Entity.SendGlobalMessage(new PlayerMovedMessage(correctedPos, actualDelta));
+        }
+    }
+
+    public override void Cleanup()
+    {
+        if (_hasCollisionComponent)
+        {
+            collisionSystem.UnregisterEntity(_entityId);
         }
 
-        Vector2 actualDelta = correctedPos - previousPos;
-        Entity.SendGlobalMessage(new PlayerMovedMessage(correctedPos, actualDelta));
+        base.Cleanup();
     }
 
     private static Vector2 ComputeDelta(Vector2 direction, float speed, float dt)
@@ -82,4 +99,19 @@ public class PlayerMovementBehavior(
         direction.Normalize();
         return direction * speed * dt;
     }
+
+    private void EnsureRegisteredWithCollisionSystem()
+    {
+        var playerShape = new BoxShape(
+            new Rectangle(0, 0, OctarineConstants.PlayerSize, OctarineConstants.PlayerSize));
+
+        var collisionComponent = new CollisionComponent(playerShape, CollisionLayers.Entity)
+        {
+            CollidesWith = CollisionLayers.Solid | CollisionLayers.Platform, IsStatic = false
+        };
+
+        // Re-register every frame - the collision system will handle this efficiently
+        collisionSystem.RegisterEntity(_entityId, collisionComponent, Entity.Position);
+    }
+
 }
