@@ -1,7 +1,7 @@
 ﻿// OctarineCodex/Entities/Behaviors/GlobalEntityDeathHandler.cs
 
-using OctarineCodex.Entities.Messages;
 using OctarineCodex.Logging;
+using OctarineCodex.Messages;
 using OctarineCodex.Messaging;
 
 namespace OctarineCodex.Entities.Behaviors;

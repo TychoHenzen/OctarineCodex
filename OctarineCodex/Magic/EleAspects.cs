@@ -1,7 +1,7 @@
 ﻿
 using System.Collections.Generic;
 
-namespace OctarineCodex;
+namespace OctarineCodex.Magic;
 
 public static class EleAspects
 {

@@ -6,7 +6,7 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using OctarineCodex.Logging;
 
-namespace OctarineCodex;
+namespace OctarineCodex.Services;
 
 /// <summary>
 ///     Extensions for automatic service discovery and registration via reflection.

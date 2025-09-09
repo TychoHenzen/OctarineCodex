@@ -1,5 +1,7 @@
 ﻿// OctarineCodex/Messaging/IMessageBus.cs
 
+using OctarineCodex.Services;
+
 namespace OctarineCodex.Messaging;
 
 /// <summary>

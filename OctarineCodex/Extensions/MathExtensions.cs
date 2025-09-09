@@ -7,6 +7,15 @@ namespace OctarineCodex.Extensions;
 
 public static class MathExtensions
 {
+    public static bool EqualsAppr(this float lhs, float rhs, float epsilon = 0.001f)
+    {
+        return Math.Abs(lhs - rhs) <= epsilon;
+    }
+
+    public static bool EqualsAppr(this double lhs, double rhs, double epsilon = 0.001f)
+    {
+        return Math.Abs(lhs - rhs) <= epsilon;
+    }
     /// <summary>
     /// Scales a rectangle's size by the specified factor while keeping the same position.
     /// </summary>

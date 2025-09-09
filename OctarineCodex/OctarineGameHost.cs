@@ -3,6 +3,7 @@ using System.IO;
 using LDtk;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using OctarineCodex.Collisions;
 using OctarineCodex.Entities;
 using OctarineCodex.Entities.Behaviors;
 using OctarineCodex.Input;
@@ -17,9 +18,8 @@ public class OctarineGameHost : Game
 {
     // Services - injected via DI
     private readonly ICameraService _cameraService;
-    private readonly ICollisionService _collisionService;
+    private readonly ICollisionSystem _collisionSystem;
     private readonly IEntityService _entityService;
-    private readonly GraphicsDeviceManager _graphics;
     private readonly IInputService _inputService;
     private readonly ILevelRenderer _levelRenderer;
     private readonly ILoggingService _logger;
@@ -30,13 +30,14 @@ public class OctarineGameHost : Game
     // Rendering system
     private RenderTarget2D _renderTarget = null!;
     private SpriteBatch _spriteBatch = null!;
+    private readonly GraphicsDeviceManager _graphics;
 
     public OctarineGameHost(
         ILoggingService logger,
         IInputService inputService,
         IMapService mapService,
         ILevelRenderer levelRenderer,
-        ICollisionService collisionService,
+        ICollisionSystem collisionSystem,
         IEntityService entityService,
         IWorldLayerService worldLayerService,
         ITeleportService teleportService,
@@ -46,7 +47,7 @@ public class OctarineGameHost : Game
         _inputService = inputService ?? throw new ArgumentNullException(nameof(inputService));
         _mapService = mapService ?? throw new ArgumentNullException(nameof(mapService));
         _levelRenderer = levelRenderer ?? throw new ArgumentNullException(nameof(levelRenderer));
-        _collisionService = collisionService ?? throw new ArgumentNullException(nameof(collisionService));
+        _collisionSystem = collisionSystem ?? throw new ArgumentNullException(nameof(collisionSystem));
         _entityService = entityService ?? throw new ArgumentNullException(nameof(entityService));
         _worldLayerService = worldLayerService ?? throw new ArgumentNullException(nameof(worldLayerService));
         _teleportService = teleportService ?? throw new ArgumentNullException(nameof(teleportService));
@@ -134,9 +135,9 @@ public class OctarineGameHost : Game
         _worldLayerService.InitializeLevels(_mapService.CurrentLevels);
         _entityService.InitializeEntities(_mapService.CurrentLevels);
 
-        // Initialize systems for current layer
+        // Initialize new collision system for current layer
         var currentLayerLevels = _worldLayerService.GetCurrentLayerLevels();
-        _collisionService.InitializeCollision(currentLayerLevels);
+        _collisionSystem.InitializeLevels(currentLayerLevels);
         _entityService.UpdateEntitiesForCurrentLayer(currentLayerLevels);
         _teleportService.InitializeTeleports();
     }
@@ -174,6 +175,9 @@ public class OctarineGameHost : Game
 
         // Update all entities (this includes player movement, camera following, and teleportation)
         _entityService.Update(gameTime);
+
+        // Process collision system events (triggers, collision messages, etc.)
+        _collisionSystem.ProcessCollisions();
 
         base.Update(gameTime);
     }

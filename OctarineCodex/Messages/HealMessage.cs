@@ -1,4 +1,4 @@
-﻿namespace OctarineCodex.Entities.Messages;
+﻿namespace OctarineCodex.Messages;
 
 public class HealMessage(int amount, string? healSource = null)
 {

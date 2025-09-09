@@ -6,12 +6,13 @@ using System.Text.Json;
 using LDtk;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
+using OctarineCodex.Logging;
 
 namespace OctarineCodex.Json;
 
 public static class NewtonsoftEntityLoader
 {
-    public static T[] GetEntitiesWithNewtonsoft<T>(this LDtkLevel level)
+    public static T[] GetEntitiesWithNewtonsoft<T>(this LDtkLevel level, ILoggingService logger)
         where T : new()
     {
         var entities = new List<T>();
@@ -19,7 +20,7 @@ public static class NewtonsoftEntityLoader
 
         if (level.LayerInstances == null)
         {
-            return entities.ToArray();
+            return [.. entities];
         }
 
         foreach (var layer in level.LayerInstances)
@@ -34,12 +35,12 @@ public static class NewtonsoftEntityLoader
                 try
                 {
                     // Pass level context for world coordinate conversion
-                    var entity = CreateEntityFromPublicApi<T>(entityInstance, level);
+                    var entity = CreateEntityFromPublicApi<T>(entityInstance, level, logger);
                     entities.Add(entity);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to create {targetTypeName}: {ex.Message}");
+                    logger.Exception(ex, $"Failed to create {targetTypeName}");
                 }
             }
         }
@@ -47,7 +48,8 @@ public static class NewtonsoftEntityLoader
         return entities.ToArray();
     }
 
-    private static T CreateEntityFromPublicApi<T>(EntityInstance entityInstance, LDtkLevel level)
+    private static T CreateEntityFromPublicApi<T>(EntityInstance entityInstance, LDtkLevel level,
+        ILoggingService logger)
         where T : new()
     {
         T entity = new();
@@ -74,11 +76,11 @@ public static class NewtonsoftEntityLoader
             SetProperty(entity, nameof(ILDtkEntity.Tile), rect);
         }
 
-        ParseCustomFields(entity, entityInstance.FieldInstances);
+        ParseCustomFields(entity, entityInstance.FieldInstances, logger);
         return entity;
     }
 
-    private static void ParseCustomFields<T>(T entity, FieldInstance[] fieldInstances)
+    private static void ParseCustomFields<T>(T entity, FieldInstance[] fieldInstances, ILoggingService logger)
     {
         foreach (var field in fieldInstances)
         {
@@ -98,7 +100,7 @@ public static class NewtonsoftEntityLoader
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to parse field {field._Identifier}: {ex.Message}");
+                logger.Exception(ex, $"Failed to parse field {field._Identifier}");
             }
         }
     }

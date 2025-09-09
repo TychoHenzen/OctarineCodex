@@ -368,8 +368,6 @@ public sealed class LevelRenderer(ILoggingService logger) : ILevelRenderer, IDis
                     foreach (var tileId in enumTag.TileIds)
                     {
                         depthMap[tileId] = depthCategory;
-                        logger.Debug(
-                            $"Tagged tile {tileId} with tag {enumTag.EnumValueId} in tileset {tilesetKey} as {depthCategory}");
                     }
                 }
             }

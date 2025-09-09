@@ -1,6 +1,7 @@
 ﻿// OctarineCodex/Entities/IEntityWrapperFactory.cs
 
 using LDtk;
+using OctarineCodex.Services;
 
 namespace OctarineCodex.Entities;
 
