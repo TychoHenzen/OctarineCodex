@@ -17,10 +17,10 @@ public static class Program
 
         // Get the game host from DI instead of manual construction
         using var game = serviceProvider.GetRequiredService<OctarineGameHost>();
-
+        game.Initialize();
         game.Window.AllowUserResizing = true;
         game.Run();
 
-        await serviceProvider.DisposeAsync();
+        await serviceProvider.DisposeAsync().ConfigureAwait(false);
     }
 }

@@ -43,6 +43,14 @@ public static class MathExtensions
             (int)Math.Round(rectangle.Height * scaleY));
     }
 
+    public static Rectangle Clone(this Rectangle rectangle)
+    {
+        return new Rectangle(
+            rectangle.X,
+            rectangle.Y,
+            rectangle.Width,
+            rectangle.Height);
+    }
     /// <summary>
     /// Converts pixel coordinates to tile coordinates by dividing by tile size.
     /// </summary>

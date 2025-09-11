@@ -2,24 +2,21 @@
 
 namespace OctarineCodex.Collisions;
 
-public sealed class CircleShape : ICollisionShape
+public sealed class CircleShape(Vector2 center, float radius) : ICollisionShape
 {
-    public Vector2 Center { get; }
-    public float Radius { get; }
+    public Vector2 Center => center;
+    public float Radius => radius;
 
-    public CircleShape(Vector2 center, float radius)
+    public Rectangle GetFinalBounds()
     {
-        Center = center;
-        Radius = radius;
+        return new Rectangle(
+            (int)(Center.X - Radius),
+            (int)(Center.Y - Radius),
+            (int)(Radius * 2),
+            (int)(Radius * 2));
     }
 
-    public override Rectangle GetBounds()
-    {
-        return new Rectangle((int)(Center.X - Radius), (int)(Center.Y - Radius),
-            (int)(Radius * 2), (int)(Radius * 2));
-    }
-
-    public override bool Intersects(ICollisionShape other)
+    public bool Intersects(ICollisionShape other)
     {
         return other switch
         {
@@ -31,12 +28,12 @@ public sealed class CircleShape : ICollisionShape
         };
     }
 
-    public override bool Contains(Vector2 point)
+    public bool Contains(Vector2 point)
     {
         return Vector2.DistanceSquared(Center, point) <= Radius * Radius;
     }
 
-    public override Vector2 GetClosestPoint(Vector2 point)
+    public Vector2 GetClosestPoint(Vector2 point)
     {
         Vector2 direction = point - Center;
         if (direction.LengthSquared() > Radius * Radius)

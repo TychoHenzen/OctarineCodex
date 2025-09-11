@@ -179,7 +179,7 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
         ICollisionShape translatedShape = TranslateShape(shape, position);
 
         // Check tile overlaps
-        Rectangle bounds = translatedShape.GetBounds();
+        Rectangle bounds = translatedShape.GetFinalBounds();
         Rectangle tileBounds = bounds.ToTileCoordinates(_tileSize);
 
         tileBounds.ForEachPosition(point =>
@@ -238,7 +238,7 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
         direction.Normalize();
 
         // Simplified shapecast using multiple raycasts from shape bounds
-        Rectangle bounds = shape.GetBounds();
+        Rectangle bounds = shape.GetFinalBounds();
         var testPoints = new[]
         {
             new Vector2(bounds.Left, bounds.Top), new Vector2(bounds.Right, bounds.Top),
@@ -273,7 +273,7 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
         }
 
         ICollisionShape shape = TranslateShape(entity.Component.Shape, desiredPos);
-        Rectangle bounds = shape.GetBounds();
+        Rectangle bounds = shape.GetFinalBounds();
 
         // Check tile collision
         if (CheckTileCollision(bounds, entity.Component.CollidesWith))
@@ -281,7 +281,7 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
             // Try horizontal movement only
             var horizontalPos = new Vector2(desiredPos.X, currentPos.Y);
             ICollisionShape horizontalShape = TranslateShape(entity.Component.Shape, horizontalPos);
-            if (!CheckTileCollision(horizontalShape.GetBounds(), entity.Component.CollidesWith))
+            if (!CheckTileCollision(horizontalShape.GetFinalBounds(), entity.Component.CollidesWith))
             {
                 return horizontalPos;
             }
@@ -289,7 +289,7 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
             // Try vertical movement only
             var verticalPos = new Vector2(currentPos.X, desiredPos.Y);
             ICollisionShape verticalShape = TranslateShape(entity.Component.Shape, verticalPos);
-            if (!CheckTileCollision(verticalShape.GetBounds(), entity.Component.CollidesWith))
+            if (!CheckTileCollision(verticalShape.GetFinalBounds(), entity.Component.CollidesWith))
             {
                 return verticalPos;
             }
@@ -462,8 +462,8 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
     private float CalculatePenetrationDepth(ICollisionShape shapeA, Vector2 posA, ICollisionShape shapeB, Vector2 posB)
     {
         // Simplified penetration calculation
-        Rectangle boundsA = TranslateShape(shapeA, posA).GetBounds();
-        Rectangle boundsB = TranslateShape(shapeB, posB).GetBounds();
+        Rectangle boundsA = TranslateShape(shapeA, posA).GetFinalBounds();
+        Rectangle boundsB = TranslateShape(shapeB, posB).GetFinalBounds();
 
         var xOverlap = Math.Min(boundsA.Right, boundsB.Right) - Math.Max(boundsA.Left, boundsB.Left);
         var yOverlap = Math.Min(boundsA.Bottom, boundsB.Bottom) - Math.Max(boundsA.Top, boundsB.Top);
@@ -595,7 +595,7 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
         Vector2 origin, Vector2 direction, ICollisionShape shape, float maxDistance)
     {
         // Simplified ray-shape intersection
-        Rectangle bounds = shape.GetBounds();
+        Rectangle bounds = shape.GetFinalBounds();
 
         // Ray-AABB intersection
         var tMin = (bounds.Left - origin.X) / direction.X;

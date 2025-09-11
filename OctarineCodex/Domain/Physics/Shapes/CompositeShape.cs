@@ -4,42 +4,37 @@ using Microsoft.Xna.Framework;
 
 namespace OctarineCodex.Collisions;
 
-public sealed class CompositeShape : ICollisionShape
+public sealed class CompositeShape(params ICollisionShape[] shapes) : ICollisionShape
 {
-    public IReadOnlyList<ICollisionShape> Shapes { get; }
+    public IReadOnlyList<ICollisionShape> Shapes { get; } = shapes;
 
-    public CompositeShape(params ICollisionShape[] shapes)
-    {
-        Shapes = shapes;
-    }
-
-    public override Rectangle GetBounds()
+    public Rectangle GetFinalBounds()
     {
         if (Shapes.Count == 0)
         {
             return Rectangle.Empty;
         }
 
-        Rectangle bounds = Shapes[0].GetBounds();
+        Rectangle bounds = Shapes[0].GetFinalBounds();
         for (var i = 1; i < Shapes.Count; i++)
         {
-            bounds = Rectangle.Union(bounds, Shapes[i].GetBounds());
+            bounds = Rectangle.Union(bounds, Shapes[i].GetFinalBounds());
         }
 
         return bounds;
     }
 
-    public override bool Intersects(ICollisionShape other)
+    public bool Intersects(ICollisionShape other)
     {
         return Shapes.Any(shape => shape.Intersects(other));
     }
 
-    public override bool Contains(Vector2 point)
+    public bool Contains(Vector2 point)
     {
         return Shapes.Any(shape => shape.Contains(point));
     }
 
-    public override Vector2 GetClosestPoint(Vector2 point)
+    public Vector2 GetClosestPoint(Vector2 point)
     {
         if (Shapes.Count == 0)
         {
@@ -53,11 +48,13 @@ public sealed class CompositeShape : ICollisionShape
         {
             Vector2 testPoint = Shapes[i].GetClosestPoint(point);
             var distance = Vector2.DistanceSquared(point, testPoint);
-            if (distance < minDistance)
+            if (distance >= minDistance)
             {
-                minDistance = distance;
-                closestPoint = testPoint;
+                continue;
             }
+
+            minDistance = distance;
+            closestPoint = testPoint;
         }
 
         return closestPoint;
