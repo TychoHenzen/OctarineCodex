@@ -3,9 +3,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using OctarineCodex.Magic;
+using OctarineCodex.Domain.Entities;
+using OctarineCodex.Domain.Magic;
 
-namespace OctarineCodex.Entities.Behaviors;
+namespace OctarineCodex.Application.Entities.Behaviors;
 
 public class BehaviorBinding<T>(Func<IServiceProvider, T>? factory = null) : IBehaviorBinding
     where T : IBehavior, new()

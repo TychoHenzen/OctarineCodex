@@ -5,9 +5,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Logging;
+using OctarineCodex.Infrastructure.Logging;
 
-namespace OctarineCodex.Messaging;
+namespace OctarineCodex.Application.Messaging;
 
 /// <summary>
 ///     Central message bus implementation for inter-entity and global communication.

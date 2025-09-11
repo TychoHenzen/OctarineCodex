@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using LDtk;
 using Microsoft.Xna.Framework;
+using OctarineCodex.Application.Components;
+using OctarineCodex.Application.Messages;
+using OctarineCodex.Application.Messaging;
+using OctarineCodex.Domain.Physics;
+using OctarineCodex.Domain.Physics.Shapes;
 using OctarineCodex.Extensions;
-using OctarineCodex.Logging;
-using OctarineCodex.Messages;
-using OctarineCodex.Messaging;
+using OctarineCodex.Infrastructure.Logging;
 
-namespace OctarineCodex.Collisions;
+namespace OctarineCodex.Infrastructure.Physics;
 
 public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logger) : ICollisionSystem
 {

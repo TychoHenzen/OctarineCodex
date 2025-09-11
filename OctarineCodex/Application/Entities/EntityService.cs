@@ -2,18 +2,17 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using JetBrains.Annotations;
 using LDtk;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using OctarineCodex.Json;
-using OctarineCodex.Logging;
-using OctarineCodex.Messaging;
+using OctarineCodex.Application.Messaging;
+using OctarineCodex.Infrastructure.Logging;
+using OctarineCodex.Infrastructure.Persistence;
 
-namespace OctarineCodex.Entities;
+namespace OctarineCodex.Application.Entities;
 
 [UsedImplicitly]
 public class EntityService(

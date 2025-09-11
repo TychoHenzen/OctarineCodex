@@ -1,11 +1,11 @@
 ﻿
 using System.Collections.Generic;
 
-namespace OctarineCodex.Magic;
+namespace OctarineCodex.Domain.Magic;
 
 public static class EleAspects
 {
-    
+
     public enum Aspect
     {
         Ignis, //fire
@@ -25,7 +25,7 @@ public static class EleAspects
         Iuxta, // Nearby
         Disis // Distant
     }
-    
+
     public enum Element
     {
         Solidum, // solidity (air-rock)

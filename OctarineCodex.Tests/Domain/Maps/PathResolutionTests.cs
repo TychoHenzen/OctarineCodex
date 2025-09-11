@@ -1,8 +1,6 @@
-﻿using System.IO;
-using Xunit;
-using FluentAssertions;
+﻿using FluentAssertions;
 
-namespace OctarineCodex.Tests.Maps;
+namespace OctarineCodex.Tests.Domain.Maps;
 
 /// <summary>
 /// Tests to investigate the LDTK file path resolution issue.

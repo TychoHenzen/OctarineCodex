@@ -1,8 +1,8 @@
 ﻿// OctarineCodex/Messaging/IMessageBus.cs
 
-using OctarineCodex.Services;
+using OctarineCodex.Application.Services;
 
-namespace OctarineCodex.Messaging;
+namespace OctarineCodex.Application.Messaging;
 
 /// <summary>
 ///     Central message bus for inter-entity and global communication.

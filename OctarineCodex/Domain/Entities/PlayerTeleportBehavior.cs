@@ -4,13 +4,14 @@ using System.Collections.Generic;
 using JetBrains.Annotations;
 using LDtk;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Collisions;
-using OctarineCodex.Input;
-using OctarineCodex.Logging;
-using OctarineCodex.Maps;
-using OctarineCodex.Messages;
+using OctarineCodex.Application.Entities;
+using OctarineCodex.Application.Maps;
+using OctarineCodex.Application.Messages;
+using OctarineCodex.Domain.Physics;
+using OctarineCodex.Infrastructure.Logging;
+using OctarineCodex.Presentation.Input;
 
-namespace OctarineCodex.Entities.Behaviors;
+namespace OctarineCodex.Domain.Entities;
 
 /// <summary>
 ///     Handles player teleportation between world layers.

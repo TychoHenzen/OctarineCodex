@@ -1,7 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
-using OctarineCodex.Services;
+using OctarineCodex.Application.Services;
 
-namespace OctarineCodex.Maps;
+namespace OctarineCodex.Application.Maps;
 
 [Service<TeleportService>]
 public interface ITeleportService

@@ -1,4 +1,4 @@
-﻿namespace OctarineCodex.Messaging;
+﻿namespace OctarineCodex.Application.Messaging;
 
 /// <summary>
 ///     Defines the scope of message delivery.

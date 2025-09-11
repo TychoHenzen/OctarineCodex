@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Player;
+namespace OctarineCodex.Presentation.Camera;
 
 /// <summary>
 ///     2D camera system for handling player following, room constraints, and viewport transformations.

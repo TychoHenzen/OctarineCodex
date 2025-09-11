@@ -1,9 +1,10 @@
 ﻿using FluentAssertions;
 using LDtk;
-using OctarineCodex.Logging;
-using OctarineCodex.Maps;
+using OctarineCodex.Application.Maps;
+using OctarineCodex.Infrastructure.LDtk;
+using OctarineCodex.Infrastructure.Logging;
 
-namespace OctarineCodex.Tests.Maps;
+namespace OctarineCodex.Tests.Infrastructure.LDtk;
 
 /// <summary>
 ///     Tests for the unified MapService, replacing the old SimpleMapService tests.

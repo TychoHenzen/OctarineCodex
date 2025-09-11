@@ -4,9 +4,9 @@ using System;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using OctarineCodex.Logging;
+using OctarineCodex.Infrastructure.Logging;
 
-namespace OctarineCodex.Services;
+namespace OctarineCodex.Application.Services;
 
 /// <summary>
 ///     Extensions for automatic service discovery and registration via reflection.

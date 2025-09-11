@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Collisions;
+namespace OctarineCodex.Domain.Physics.Shapes;
 
 public interface ICollisionShape
 {

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Messaging;
+namespace OctarineCodex.Application.Messaging;
 
 /// <summary>
 ///     Interface for entities that can receive messages.

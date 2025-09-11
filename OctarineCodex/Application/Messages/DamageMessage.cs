@@ -1,6 +1,6 @@
 ﻿// OctarineCodex/Entities/Messages/EntityMessages.cs
 
-namespace OctarineCodex.Messages;
+namespace OctarineCodex.Application.Messages;
 
 public class DamageMessage(int amount, string? damageSource = null)
 {

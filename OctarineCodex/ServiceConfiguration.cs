@@ -3,9 +3,9 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Entities;
-using OctarineCodex.Messaging;
-using OctarineCodex.Services;
+using OctarineCodex.Application.Entities;
+using OctarineCodex.Application.Messaging;
+using OctarineCodex.Application.Services;
 using static OctarineCodex.OctarineConstants;
 
 namespace OctarineCodex;

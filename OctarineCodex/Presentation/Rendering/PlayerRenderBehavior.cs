@@ -2,9 +2,11 @@
 
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using OctarineCodex.Application.Entities;
+using OctarineCodex.Domain.Entities;
 using static OctarineCodex.OctarineConstants;
 
-namespace OctarineCodex.Entities.Behaviors;
+namespace OctarineCodex.Presentation.Rendering;
 
 /// <summary>
 ///     Handles player rendering.

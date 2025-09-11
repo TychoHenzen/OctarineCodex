@@ -1,10 +1,10 @@
 ﻿// OctarineCodex/Entities/Behaviors/GlobalEntityDeathHandler.cs
 
-using OctarineCodex.Logging;
-using OctarineCodex.Messages;
-using OctarineCodex.Messaging;
+using OctarineCodex.Application.Messages;
+using OctarineCodex.Application.Messaging;
+using OctarineCodex.Infrastructure.Logging;
 
-namespace OctarineCodex.Entities.Behaviors;
+namespace OctarineCodex.Application.Entities;
 
 /// <summary>
 ///     Global handler for entity death events - manages loot drops, scoring, and game state.

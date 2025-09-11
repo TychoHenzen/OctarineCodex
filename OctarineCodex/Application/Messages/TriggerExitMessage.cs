@@ -1,6 +1,6 @@
-﻿using OctarineCodex.Collisions;
+﻿using OctarineCodex.Domain.Physics;
 
-namespace OctarineCodex.Messages;
+namespace OctarineCodex.Application.Messages;
 
 public sealed class TriggerExitMessage(string triggerId, string entityId, CollisionLayers triggerLayers)
 {

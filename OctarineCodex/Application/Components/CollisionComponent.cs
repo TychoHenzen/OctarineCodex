@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
+using OctarineCodex.Domain.Physics;
+using OctarineCodex.Domain.Physics.Shapes;
 
-namespace OctarineCodex.Collisions;
+namespace OctarineCodex.Application.Components;
 
 public sealed class CollisionComponent
 {

@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using LDtk;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Entities;
-using OctarineCodex.Logging;
+using OctarineCodex.Application.Entities;
+using OctarineCodex.Infrastructure.Logging;
 
-namespace OctarineCodex.Maps;
+namespace OctarineCodex.Application.Maps;
 
 public class TeleportService(IEntityService entityService, IWorldLayerService worldLayerService, ILoggingService logger)
     : ITeleportService

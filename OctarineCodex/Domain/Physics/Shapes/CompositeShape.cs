@@ -2,7 +2,7 @@
 using System.Linq;
 using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Collisions;
+namespace OctarineCodex.Domain.Physics.Shapes;
 
 public sealed class CompositeShape(params ICollisionShape[] shapes) : ICollisionShape
 {

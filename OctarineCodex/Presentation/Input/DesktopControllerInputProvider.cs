@@ -1,7 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
-namespace OctarineCodex.Input;
+namespace OctarineCodex.Presentation.Input;
 
 /// <summary>
 /// DesktopGL implementation of IControllerInputProvider.

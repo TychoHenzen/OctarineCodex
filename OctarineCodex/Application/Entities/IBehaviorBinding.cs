@@ -1,6 +1,7 @@
 ﻿using System;
+using OctarineCodex.Domain.Entities;
 
-namespace OctarineCodex.Entities.Behaviors;
+namespace OctarineCodex.Application.Entities;
 
 public interface IBehaviorBinding
 {

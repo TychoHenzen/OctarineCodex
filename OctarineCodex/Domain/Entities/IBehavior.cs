@@ -2,8 +2,9 @@
 
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using OctarineCodex.Application.Entities;
 
-namespace OctarineCodex.Entities.Behaviors;
+namespace OctarineCodex.Domain.Entities;
 
 public interface IBehavior
 {

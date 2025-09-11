@@ -2,9 +2,10 @@
 
 using System;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Messages;
+using OctarineCodex.Application.Entities;
+using OctarineCodex.Application.Messages;
 
-namespace OctarineCodex.Entities.Behaviors;
+namespace OctarineCodex.Domain.Entities;
 
 [EntityBehavior(RequiredFields = ["life"], Priority = 100)]
 public class HealthBehavior : EntityBehavior

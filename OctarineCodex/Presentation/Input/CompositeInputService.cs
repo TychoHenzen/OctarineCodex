@@ -2,7 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
-namespace OctarineCodex.Input;
+namespace OctarineCodex.Presentation.Input;
 
 /// <summary>
 /// Composite input service that combines input from keyboard and controller sources.

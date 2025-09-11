@@ -6,10 +6,10 @@ using LDtk;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using OctarineCodex.Logging;
-using OctarineCodex.Player;
+using OctarineCodex.Infrastructure.Logging;
+using OctarineCodex.Presentation.Camera;
 
-namespace OctarineCodex.Maps;
+namespace OctarineCodex.Presentation.Rendering;
 
 /// <summary>
 ///     Unified level renderer that can handle both single and multiple LDtk levels

@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using LDtk;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Services;
+using OctarineCodex.Application.Services;
+using OctarineCodex.Infrastructure.LDtk;
 
-namespace OctarineCodex.Maps;
+namespace OctarineCodex.Application.Maps;
 
 [Service<WorldLayerService>]
 public interface IWorldLayerService

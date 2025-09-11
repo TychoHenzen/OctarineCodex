@@ -2,11 +2,12 @@
 using JetBrains.Annotations;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using OctarineCodex.Entities;
-using OctarineCodex.Maps;
+using OctarineCodex.Application.Entities;
+using OctarineCodex.Application.Maps;
+using OctarineCodex.Domain.Entities;
 using static OctarineCodex.OctarineConstants;
 
-namespace OctarineCodex.Entities.Behaviors;
+namespace OctarineCodex.Presentation.Rendering;
 
 /// <summary>
 /// Renders a visual indicator when the player is near a teleport.

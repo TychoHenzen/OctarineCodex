@@ -1,10 +1,12 @@
 ﻿using FluentAssertions;
 using LDtk;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Logging;
-using OctarineCodex.Maps;
+using OctarineCodex.Application.Maps;
+using OctarineCodex.Infrastructure.LDtk;
+using OctarineCodex.Infrastructure.Logging;
+using OctarineCodex.Presentation.Rendering;
 
-namespace OctarineCodex.Tests.Maps;
+namespace OctarineCodex.Tests.Integration;
 
 /// <summary>
 ///     Integration tests for the unified map system, replacing the old SimpleMapSystemIntegrationTests.

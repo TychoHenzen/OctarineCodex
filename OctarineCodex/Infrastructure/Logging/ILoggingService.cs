@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
-using OctarineCodex.Services;
+using OctarineCodex.Application.Services;
 
-namespace OctarineCodex.Logging;
+namespace OctarineCodex.Infrastructure.Logging;
 
 /// <summary>
 ///     Provides logging functionality with automatic caller information capture.

@@ -4,12 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using LDtk;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Maps;
-using OctarineCodex.Messages;
-using OctarineCodex.Messaging;
-using OctarineCodex.Services;
+using OctarineCodex.Application.Entities;
+using OctarineCodex.Application.Maps;
+using OctarineCodex.Application.Messages;
+using OctarineCodex.Application.Messaging;
+using OctarineCodex.Domain.Entities;
 
-namespace OctarineCodex.Entities.Behaviors;
+namespace OctarineCodex.Presentation.Camera;
 
 /// <summary>
 ///     Makes camera follow player via message-based communication for better decoupling.

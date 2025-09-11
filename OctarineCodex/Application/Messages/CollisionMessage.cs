@@ -2,7 +2,7 @@
 
 using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Messages;
+namespace OctarineCodex.Application.Messages;
 
 public sealed class CollisionMessage(
     string entityA,

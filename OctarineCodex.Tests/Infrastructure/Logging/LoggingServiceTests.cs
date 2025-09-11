@@ -1,12 +1,7 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using FluentAssertions;
-using NSubstitute;
-using OctarineCodex.Logging;
-using Xunit;
+﻿using FluentAssertions;
+using OctarineCodex.Infrastructure.Logging;
 
-namespace OctarineCodex.Tests.Logging;
+namespace OctarineCodex.Tests.Infrastructure.Logging;
 
 public class LoggingServiceTests
 {
@@ -96,7 +91,7 @@ public class LoggingServiceTests
     {
         // Arrange
         using var service = new LoggingService();
-        var testException = new ArgumentNullException("testParam", "Test null exception");
+        var testException = new AccessViolationException("Test exception");
 
         // Act
         var action = () => service.Exception(testException);

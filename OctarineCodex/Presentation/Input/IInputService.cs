@@ -1,7 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
-using OctarineCodex.Services;
+using OctarineCodex.Application.Services;
 
-namespace OctarineCodex.Input;
+namespace OctarineCodex.Presentation.Input;
 
 /// <summary>
 ///     General-purpose input service that abstracts input from various sources (keyboard, controller, etc.).

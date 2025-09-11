@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Messages;
+namespace OctarineCodex.Application.Messages;
 
 public class DoorOpenedMessage(Vector2? doorPosition = null, string? doorId = null)
 {

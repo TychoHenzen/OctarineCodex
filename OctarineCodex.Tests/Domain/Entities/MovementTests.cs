@@ -1,8 +1,6 @@
-﻿using FluentAssertions;
-using Microsoft.Xna.Framework;
-using OctarineCodex.Player;
+﻿using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Tests;
+namespace OctarineCodex.Tests.Domain.Entities;
 
 public class MovementTests
 {

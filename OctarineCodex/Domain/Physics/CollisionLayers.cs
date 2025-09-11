@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace OctarineCodex.Collisions;
+namespace OctarineCodex.Domain.Physics;
 
 [Flags]
 public enum CollisionLayers

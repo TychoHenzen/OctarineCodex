@@ -2,10 +2,9 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;
-using OctarineCodex.Input;
-using Xunit;
+using OctarineCodex.Presentation.Input;
 
-namespace OctarineCodex.Tests.Input;
+namespace OctarineCodex.Tests.Presentation.Input;
 
 public class CompositeInputServiceTests
 {

@@ -1,11 +1,14 @@
 ﻿// OctarineCodex/Entities/Behaviors/PlayerMovementBehavior.cs
 
 using Microsoft.Xna.Framework;
-using OctarineCodex.Collisions;
-using OctarineCodex.Input;
-using OctarineCodex.Messages;
+using OctarineCodex.Application.Components;
+using OctarineCodex.Application.Entities;
+using OctarineCodex.Application.Messages;
+using OctarineCodex.Domain.Physics;
+using OctarineCodex.Domain.Physics.Shapes;
+using OctarineCodex.Presentation.Input;
 
-namespace OctarineCodex.Entities.Behaviors;
+namespace OctarineCodex.Domain.Entities;
 
 [EntityBehavior(EntityType = "Player", Priority = 1000)]
 public class PlayerMovementBehavior(

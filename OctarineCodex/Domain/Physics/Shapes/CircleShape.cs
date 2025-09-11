@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Collisions;
+namespace OctarineCodex.Domain.Physics.Shapes;
 
 public sealed class CircleShape(Vector2 center, float radius) : ICollisionShape
 {

@@ -1,7 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using OctarineCodex.Extensions;
 
-namespace OctarineCodex.Collisions;
+namespace OctarineCodex.Domain.Physics.Shapes;
 
 public sealed class BoxShape(Rectangle bounds, Vector2 offset = default) : ICollisionShape
 {

@@ -1,4 +1,4 @@
-﻿namespace OctarineCodex.Maps;
+﻿namespace OctarineCodex.Application.Maps;
 
 /// <summary>
 ///     Configuration options for loading LDtk files.

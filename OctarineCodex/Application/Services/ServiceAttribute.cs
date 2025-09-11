@@ -3,7 +3,7 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace OctarineCodex.Services;
+namespace OctarineCodex.Application.Services;
 
 /// <summary>
 ///     Marks an interface for automatic service registration with dependency injection.

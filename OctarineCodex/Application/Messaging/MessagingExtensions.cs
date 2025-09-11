@@ -4,9 +4,9 @@ using System;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using OctarineCodex.Logging;
+using OctarineCodex.Infrastructure.Logging;
 
-namespace OctarineCodex.Messaging;
+namespace OctarineCodex.Application.Messaging;
 
 /// <summary>
 ///     Extensions for configuring the messaging system with dependency injection.

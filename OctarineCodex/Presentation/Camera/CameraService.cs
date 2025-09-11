@@ -1,7 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
-using OctarineCodex.Player;
 
-namespace OctarineCodex.Services;
+namespace OctarineCodex.Presentation.Camera;
 
 /// <summary>
 ///     Service implementation for camera management.

@@ -1,9 +1,12 @@
 ﻿using System.Collections.Generic;
 using LDtk;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Services;
+using OctarineCodex.Application.Components;
+using OctarineCodex.Application.Services;
+using OctarineCodex.Domain.Physics.Shapes;
+using OctarineCodex.Infrastructure.Physics;
 
-namespace OctarineCodex.Collisions;
+namespace OctarineCodex.Domain.Physics;
 
 [Service<CollisionSystem>]
 public interface ICollisionSystem

@@ -1,9 +1,9 @@
 ﻿// OctarineCodex/Entities/IEntityWrapperFactory.cs
 
 using LDtk;
-using OctarineCodex.Services;
+using OctarineCodex.Application.Services;
 
-namespace OctarineCodex.Entities;
+namespace OctarineCodex.Application.Entities;
 
 /// <summary>
 ///     Factory for creating EntityWrapper instances with proper dependency injection.

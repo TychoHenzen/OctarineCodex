@@ -1,6 +1,6 @@
-﻿using OctarineCodex.Entities;
+﻿using OctarineCodex.Application.Entities;
 
-namespace OctarineCodex.Messages;
+namespace OctarineCodex.Application.Messages;
 
 public class InteractionMessage(EntityWrapper interactor, string? interactionType = null)
 {

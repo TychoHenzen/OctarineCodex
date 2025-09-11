@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Messaging;
+namespace OctarineCodex.Application.Messaging;
 
 /// <summary>
 ///     Options for message delivery.

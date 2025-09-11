@@ -1,6 +1,6 @@
 ﻿using LDtk;
 
-namespace OctarineCodex.Entities;
+namespace OctarineCodex.Domain.Entities;
 
 public interface IEntityFactory
 {

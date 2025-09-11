@@ -1,4 +1,4 @@
-﻿namespace OctarineCodex.Messages;
+﻿namespace OctarineCodex.Application.Messages;
 
 public class HealthChangedMessage(int current, int max, int previousHealth = -1)
 {

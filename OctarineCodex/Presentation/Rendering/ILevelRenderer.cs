@@ -3,10 +3,10 @@ using LDtk;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using OctarineCodex.Player;
-using OctarineCodex.Services;
+using OctarineCodex.Application.Services;
+using OctarineCodex.Presentation.Camera;
 
-namespace OctarineCodex.Maps;
+namespace OctarineCodex.Presentation.Rendering;
 
 [Service<LevelRenderer>]
 public interface ILevelRenderer

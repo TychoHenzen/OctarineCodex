@@ -1,8 +1,8 @@
 ﻿using FluentAssertions;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Player;
+using OctarineCodex.Presentation.Camera;
 
-namespace OctarineCodex.Tests;
+namespace OctarineCodex.Tests.Presentation.Camera;
 
 public class CameraTests
 {

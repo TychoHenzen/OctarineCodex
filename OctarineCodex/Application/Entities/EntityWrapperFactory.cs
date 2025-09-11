@@ -2,9 +2,9 @@
 
 using System;
 using LDtk;
-using OctarineCodex.Messaging;
+using OctarineCodex.Application.Messaging;
 
-namespace OctarineCodex.Entities;
+namespace OctarineCodex.Application.Entities;
 
 /// <summary>
 ///     Factory implementation for creating EntityWrapper instances with proper dependency injection.

@@ -5,10 +5,10 @@ using System.Reflection;
 using LDtk;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using OctarineCodex.Entities.Behaviors;
-using OctarineCodex.Messaging;
+using OctarineCodex.Application.Messaging;
+using OctarineCodex.Domain.Entities;
 
-namespace OctarineCodex.Entities;
+namespace OctarineCodex.Application.Entities;
 
 public sealed class EntityWrapper : IMessageReceiver, IDisposable
 {

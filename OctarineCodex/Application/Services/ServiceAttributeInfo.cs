@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace OctarineCodex.Services;
+namespace OctarineCodex.Application.Services;
 
 /// <summary>
 ///     Helper class to extract service attribute information.

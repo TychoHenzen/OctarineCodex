@@ -6,9 +6,9 @@ using System.Text.Json;
 using LDtk;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
-using OctarineCodex.Logging;
+using OctarineCodex.Infrastructure.Logging;
 
-namespace OctarineCodex.Json;
+namespace OctarineCodex.Infrastructure.Persistence;
 
 public static class NewtonsoftEntityLoader
 {

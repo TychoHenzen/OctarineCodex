@@ -1,8 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using OctarineCodex.Services;
+using OctarineCodex.Application.Services;
 
-namespace OctarineCodex.Input;
+namespace OctarineCodex.Presentation.Input;
 
 /// <summary>
 ///     Abstraction for gamepad/controller input polling suitable for game controls.

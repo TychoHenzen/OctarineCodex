@@ -5,7 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace OctarineCodex.Logging;
+namespace OctarineCodex.Infrastructure.Logging;
 
 /// <summary>
 /// File-based logging service with automatic log rotation and caller information capture.
@@ -22,13 +22,13 @@ public class LoggingService : ILoggingService, IDisposable
     {
         _logDirectory = Path.Combine(Environment.CurrentDirectory, "Logs");
         Directory.CreateDirectory(_logDirectory);
-        
+
         var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss", CultureInfo.InvariantCulture);
         _currentLogFile = Path.Combine(_logDirectory, $"octarine_{timestamp}.log");
-        
+
         // Rotate old log files (keep last 5)
         RotateLogFiles();
-        
+
         // Write session start marker
         WriteLogEntry("INFO", "Session started", "LoggingService", "ctor", 0);
     }
@@ -38,6 +38,7 @@ public class LoggingService : ILoggingService, IDisposable
         [CallerFilePath] string sourceFilePath = "",
         [CallerLineNumber] int sourceLineNumber = 0)
     {
+        ThrowIfDisposed();
         WriteLogEntry("DEBUG", message, ExtractClassName(sourceFilePath), memberName, sourceLineNumber);
     }
 
@@ -46,6 +47,7 @@ public class LoggingService : ILoggingService, IDisposable
         [CallerFilePath] string sourceFilePath = "",
         [CallerLineNumber] int sourceLineNumber = 0)
     {
+        ThrowIfDisposed();
         WriteLogEntry("INFO", message, ExtractClassName(sourceFilePath), memberName, sourceLineNumber);
     }
 
@@ -54,6 +56,7 @@ public class LoggingService : ILoggingService, IDisposable
         [CallerFilePath] string sourceFilePath = "",
         [CallerLineNumber] int sourceLineNumber = 0)
     {
+        ThrowIfDisposed();
         WriteLogEntry("WARN", message, ExtractClassName(sourceFilePath), memberName, sourceLineNumber);
     }
 
@@ -62,6 +65,7 @@ public class LoggingService : ILoggingService, IDisposable
         [CallerFilePath] string sourceFilePath = "",
         [CallerLineNumber] int sourceLineNumber = 0)
     {
+        ThrowIfDisposed();
         WriteLogEntry("ERROR", message, ExtractClassName(sourceFilePath), memberName, sourceLineNumber);
     }
 
@@ -70,18 +74,47 @@ public class LoggingService : ILoggingService, IDisposable
         [CallerFilePath] string sourceFilePath = "",
         [CallerLineNumber] int sourceLineNumber = 0)
     {
-        var fullMessage = string.IsNullOrEmpty(message) 
+        ThrowIfDisposed();
+
+        var fullMessage = string.IsNullOrEmpty(message)
             ? $"{exception.GetType().Name}: {exception.Message}"
             : $"{message} | {exception.GetType().Name}: {exception.Message}";
-            
+
         WriteLogEntry("EXCEPTION", fullMessage, ExtractClassName(sourceFilePath), memberName, sourceLineNumber);
-        
+
         // Also log stack trace as additional info
         if (!string.IsNullOrEmpty(exception.StackTrace))
         {
             WriteLogEntry("EXCEPTION", $"Stack trace: {exception.StackTrace}", ExtractClassName(sourceFilePath), memberName, sourceLineNumber);
         }
     }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // Dispose managed state (managed objects)
+                WriteLogEntry("INFO", "Session ended", "LoggingService", "Dispose", 0);
+            }
+
+            // Free unmanaged resources (unmanaged objects) and override finalizer
+            // Set large fields to null
+            _disposed = true;
+        }
+    }
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+    }
+
 
     private void WriteLogEntry(string level, string message, string className, string memberName, int lineNumber)
     {
@@ -92,14 +125,19 @@ public class LoggingService : ILoggingService, IDisposable
 
         lock (_lock)
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             try
             {
                 var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                 var origin = $"[{className}.{memberName}:{lineNumber}]";
                 var logLine = $"{timestamp} {level,-9} {origin,-40} {message}";
-                
+
                 File.AppendAllText(_currentLogFile, logLine + Environment.NewLine, Encoding.UTF8);
-                
+
                 // Also write to console for immediate visibility during development
                 Console.WriteLine(logLine);
             }
@@ -157,14 +195,4 @@ public class LoggingService : ILoggingService, IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        WriteLogEntry("INFO", "Session ended", "LoggingService", "Dispose", 0);
-        _disposed = true;
-    }
 }

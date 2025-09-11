@@ -3,9 +3,10 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using OctarineCodex.Magic;
+using OctarineCodex.Application.Entities;
+using OctarineCodex.Domain.Magic;
 
-namespace OctarineCodex.Entities.Behaviors;
+namespace OctarineCodex.Domain.Entities;
 
 public abstract class EntityBehavior : IBehavior
 {

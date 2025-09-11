@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
 using LDtk;
+using OctarineCodex.Domain.Entities;
 
-namespace OctarineCodex.Entities;
+namespace OctarineCodex.Application.Entities;
 
 public interface IEntityRegistry
 {

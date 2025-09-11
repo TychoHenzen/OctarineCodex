@@ -2,9 +2,10 @@
 using System.Linq;
 using LDtk;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Logging;
+using OctarineCodex.Application.Maps;
+using OctarineCodex.Infrastructure.Logging;
 
-namespace OctarineCodex.Maps;
+namespace OctarineCodex.Infrastructure.LDtk;
 
 public class WorldLayerService : IWorldLayerService
 {

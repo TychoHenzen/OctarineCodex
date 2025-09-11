@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Entities;
+namespace OctarineCodex.Domain.Entities;
 
 public interface IEntity
 {

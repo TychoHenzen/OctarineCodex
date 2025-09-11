@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 
-namespace OctarineCodex.Collisions;
+namespace OctarineCodex.Domain.Physics;
 
 public sealed class CollisionTestResult
 {

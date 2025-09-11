@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using LDtk;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Logging;
+using OctarineCodex.Application.Maps;
+using OctarineCodex.Infrastructure.Logging;
 
-namespace OctarineCodex.Maps;
+namespace OctarineCodex.Infrastructure.LDtk;
 
 /// <summary>
 ///     Unified map service that handles loading and managing LDtk levels, whether single or multiple.

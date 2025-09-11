@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace OctarineCodex.Magic;
+namespace OctarineCodex.Domain.Magic;
 
 public class Signature
 {

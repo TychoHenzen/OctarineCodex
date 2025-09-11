@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace OctarineCodex.Entities;
+namespace OctarineCodex.Application.Entities;
 
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class EntityBehaviorAttribute : Attribute
