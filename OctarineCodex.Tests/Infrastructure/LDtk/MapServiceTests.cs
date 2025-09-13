@@ -29,7 +29,7 @@ public class MapServiceTests
         var options = new MapLoadOptions { LoadAllLevels = false }; // Load only first level
 
         // Act
-        var success = await mapService.LoadAsync(file, options);
+        var success = mapService.Load(file, options);
 
         // Assert
         success.Should().BeTrue();
@@ -53,7 +53,7 @@ public class MapServiceTests
         var options = new MapLoadOptions { SpecificLevelIdentifier = "AutoLayer" };
 
         // Act
-        var success = await mapService.LoadAsync(file, options);
+        var success = mapService.Load(file, options);
 
         // Assert
         success.Should().BeTrue();
@@ -76,7 +76,7 @@ public class MapServiceTests
         var loadAction = async () =>
         {
             var file = await Task.Run(() => LDtkFile.FromFile(filePath));
-            return await mapService.LoadAsync(file);
+            return mapService.Load(file);
         };
 
         // Assert
@@ -95,7 +95,7 @@ public class MapServiceTests
         var options = new MapLoadOptions { SpecificLevelIdentifier = "NonExistentLevel" };
 
         // Act
-        var success = await mapService.LoadAsync(file, options);
+        var success = mapService.Load(file, options);
 
         // Assert
         success.Should().BeFalse();
@@ -124,7 +124,7 @@ public class MapServiceTests
         var options = new MapLoadOptions { LoadAllLevels = true };
 
         // Act
-        var success = await mapService.LoadAsync(file, options);
+        var success = mapService.Load(file, options);
 
         // Assert
         success.Should().BeTrue();

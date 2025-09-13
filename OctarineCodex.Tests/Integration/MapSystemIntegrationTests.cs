@@ -32,7 +32,7 @@ public class MapSystemIntegrationTests
         // Act - Load level
         var file = await Task.Run(() => LDtkFile.FromFile(filePath));
         var options = new MapLoadOptions { LoadAllLevels = false };
-        var success = await mapService.LoadAsync(file, options);
+        var success = mapService.Load(file, options);
 
         // Assert - Level loading
         success.Should().BeTrue();
@@ -55,23 +55,29 @@ public class MapSystemIntegrationTests
         var setContextAction = () => renderer.SetLDtkContext(file);
         setContextAction.Should().NotThrow();
 
-        var loadTilesetsAction = async () => await renderer.LoadTilesetsAsync(null);
-        await loadTilesetsAction.Should().ThrowAsync<InvalidOperationException>();
+        // Test LoadTilesets properly validates arguments
+        // Note: Cannot easily mock ContentManager in tests due to MonoGame initialization requirements
+        Action loadTilesetsAction = () => renderer.LoadTilesets(null!);
+        loadTilesetsAction.Should().Throw<ArgumentNullException>()
+            .WithParameterName("content");
 
-        // Verify depth-sorted rendering methods exist (updated with playerPosition parameter)
+        // Verify depth-sorted rendering methods exist and validate arguments
         var testPlayerPosition = Vector2.Zero;
 
         var renderBeforeAction = () =>
             renderer.RenderLevelsBeforePlayer(mapService.CurrentLevels, null!, null!, testPlayerPosition);
-        renderBeforeAction.Should().NotThrow<ArgumentNullException>();
+        renderBeforeAction.Should().Throw<ArgumentNullException>()
+            .WithParameterName("spriteBatch");
 
         var renderAfterAction = () =>
             renderer.RenderLevelsAfterPlayer(mapService.CurrentLevels, null!, null!, testPlayerPosition);
-        renderAfterAction.Should().NotThrow<ArgumentNullException>();
+        renderAfterAction.Should().Throw<ArgumentNullException>()
+            .WithParameterName("spriteBatch");
 
         var renderForegroundAction = () =>
             renderer.RenderForegroundLayers(mapService.CurrentLevels, null!, null!, testPlayerPosition);
-        renderForegroundAction.Should().NotThrow<ArgumentNullException>();
+        renderForegroundAction.Should().Throw<ArgumentNullException>()
+            .WithParameterName("spriteBatch");
     }
 
     [Fact]
@@ -84,9 +90,9 @@ public class MapSystemIntegrationTests
         // Act - Load same level multiple times with different options
         var file = await Task.Run(() => LDtkFile.FromFile(filePath));
 
-        var success1 = await mapService.LoadAsync(file, new MapLoadOptions { LoadAllLevels = false });
-        var success2 = await mapService.LoadAsync(file, new MapLoadOptions { LoadAllLevels = true });
-        var success3 = await mapService.LoadAsync(file, new MapLoadOptions { SpecificLevelIdentifier = "AutoLayer" });
+        var success1 = mapService.Load(file, new MapLoadOptions { LoadAllLevels = false });
+        var success2 = mapService.Load(file, new MapLoadOptions { LoadAllLevels = true });
+        var success3 = mapService.Load(file, new MapLoadOptions { SpecificLevelIdentifier = "AutoLayer" });
 
         // Assert
         success1.Should().BeTrue();
@@ -122,7 +128,7 @@ public class MapSystemIntegrationTests
         var file = await Task.Run(() => LDtkFile.FromFile(filePath));
 
         // Act
-        var success = await mapService.LoadAsync(file);
+        var success = mapService.Load(file);
         var bounds = mapService.GetWorldBounds();
 
         // Assert
@@ -140,7 +146,7 @@ public class MapSystemIntegrationTests
         var file = await Task.Run(() => LDtkFile.FromFile(filePath));
 
         // Act
-        var success = await mapService.LoadAsync(file);
+        var success = mapService.Load(file);
         var centerPoint = new Vector2(148, 104); // Roughly center of 296x208 level
         var level = mapService.GetLevelAt(centerPoint);
 
@@ -151,7 +157,7 @@ public class MapSystemIntegrationTests
     }
 
     [Fact]
-    public async Task LevelRenderer_DepthSortedRendering_ShouldAcceptPlayerPosition()
+    public async Task LevelRenderer_DepthSortedRendering_ShouldValidateArguments()
     {
         // Arrange
         var renderer = new LevelRenderer(_logger);
@@ -159,36 +165,37 @@ public class MapSystemIntegrationTests
         var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
         var file = await Task.Run(() => LDtkFile.FromFile(filePath));
 
-        var success = await mapService.LoadAsync(file);
+        var success = mapService.Load(file);
         success.Should().BeTrue();
 
         renderer.SetLDtkContext(file);
 
-        // Act & Assert - Test that all three rendering passes accept different player positions
-        var testPositions = new[]
-        {
-            Vector2.Zero,
-            new Vector2(100, 100),
-            new Vector2(-50, 200)
-        };
+        // Act & Assert - Test that rendering methods properly validate required arguments
+        // Note: Testing actual graphics rendering requires full MonoGame initialization,
+        // so we focus on argument validation which can be tested in unit tests
+
+        Vector2[] testPositions = new[] { Vector2.Zero, new Vector2(100, 100), new Vector2(-50, 200) };
 
         foreach (var playerPos in testPositions)
         {
-            // All rendering methods should handle various player positions without throwing
+            // All rendering methods should validate required arguments regardless of player position
             var renderBeforeAction = () =>
                 renderer.RenderLevelsBeforePlayer(mapService.CurrentLevels, null!, null!, playerPos);
             renderBeforeAction.Should()
-                .NotThrow<ArgumentException>($"RenderLevelsBeforePlayer should handle player position {playerPos}");
+                .Throw<ArgumentNullException>()
+                .WithParameterName("spriteBatch");
 
             var renderAfterAction = () =>
                 renderer.RenderLevelsAfterPlayer(mapService.CurrentLevels, null!, null!, playerPos);
             renderAfterAction.Should()
-                .NotThrow<ArgumentException>($"RenderLevelsAfterPlayer should handle player position {playerPos}");
+                .Throw<ArgumentNullException>()
+                .WithParameterName("spriteBatch");
 
             var renderForegroundAction = () =>
                 renderer.RenderForegroundLayers(mapService.CurrentLevels, null!, null!, playerPos);
             renderForegroundAction.Should()
-                .NotThrow<ArgumentException>($"RenderForegroundLayers should handle player position {playerPos}");
+                .Throw<ArgumentNullException>()
+                .WithParameterName("spriteBatch");
         }
     }
 }
