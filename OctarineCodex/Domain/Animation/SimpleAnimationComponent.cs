@@ -1,12 +1,13 @@
 ﻿// Domain/Animation/SimpleAnimationComponent.cs
 
+using System;
 using Microsoft.Xna.Framework;
 
 namespace OctarineCodex.Domain.Animation;
 
 /// <summary>
-///     Basic animation component for simple looping animations like tiles.
-///     Supports magic system integration for dynamic behavior.
+/// Basic animation component for simple looping animations like tiles.
+/// Supports magic system integration for dynamic behavior.
 /// </summary>
 public class SimpleAnimationComponent : IAnimationComponent
 {
@@ -17,22 +18,24 @@ public class SimpleAnimationComponent : IAnimationComponent
     public bool IsComplete { get; private set; }
     public bool IsPlaying { get; private set; } = true;
 
-    public string CurrentState => _animationData.Name;
+    public string CurrentState => _animationData.Name ?? "None";
 
     public void Update(GameTime gameTime)
     {
-        if (!IsPlaying || _animationData.FrameTileIds.Length == 0)
+        if (!IsPlaying || _animationData.FrameTileIds == null || _animationData.FrameTileIds.Length == 0)
         {
             return;
         }
 
         var deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
-        var effectiveFrameRate = GetEffectiveFrameRate();
 
-        _elapsedTime += deltaTime * effectiveFrameRate;
+        // Convert frame rate to frame time (time per frame)
+        var frameTime = _animationData.FrameRate > 0 ? 1f / _animationData.FrameRate : 0.1f; // Default 10 FPS
 
-        var frameTime = 1f / effectiveFrameRate;
-        if (_elapsedTime >= frameTime)
+        _elapsedTime += deltaTime;
+
+        // Check if enough time has passed for the next frame
+        while (_elapsedTime >= frameTime && IsPlaying)
         {
             _elapsedTime -= frameTime;
             _currentFrame++;
@@ -41,13 +44,14 @@ public class SimpleAnimationComponent : IAnimationComponent
             {
                 if (_animationData.Loop)
                 {
-                    _currentFrame = 0;
+                    _currentFrame = 0; // Loop back to start
                 }
                 else
                 {
                     _currentFrame = _animationData.FrameTileIds.Length - 1;
                     IsComplete = true;
                     IsPlaying = false;
+                    break;
                 }
             }
         }
@@ -60,12 +64,14 @@ public class SimpleAnimationComponent : IAnimationComponent
 
     public int GetCurrentTileId()
     {
-        if (_animationData.FrameTileIds.Length == 0)
+        if (_animationData.FrameTileIds == null || _animationData.FrameTileIds.Length == 0)
         {
             return 0;
         }
 
-        return _animationData.FrameTileIds[_currentFrame];
+        // Ensure we don't go out of bounds
+        var frameIndex = Math.Max(0, Math.Min(_currentFrame, _animationData.FrameTileIds.Length - 1));
+        return _animationData.FrameTileIds[frameIndex];
     }
 
     public void PlayAnimation(string animationName)
@@ -84,17 +90,20 @@ public class SimpleAnimationComponent : IAnimationComponent
 
     public void SetAnimation(LDtkAnimationData animationData)
     {
+        // Only reset if this is actually a different animation
+        var isDifferent = string.IsNullOrEmpty(_animationData.Name) ||
+                          _animationData.Name != animationData.Name ||
+                          _animationData.FrameTileIds?.Length != animationData.FrameTileIds?.Length;
+
         _animationData = animationData;
-        _elapsedTime = 0f;
-        _currentFrame = 0;
-        IsComplete = false;
+
+        if (isDifferent)
+        {
+            _elapsedTime = 0f;
+            _currentFrame = 0;
+            IsComplete = false;
+        }
+
         IsPlaying = true;
-    }
-
-    private float GetEffectiveFrameRate()
-    {
-        var baseRate = _animationData.FrameRate;
-
-        return baseRate;
     }
 }

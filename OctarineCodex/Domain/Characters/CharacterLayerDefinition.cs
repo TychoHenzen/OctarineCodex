@@ -26,10 +26,10 @@ public record CharacterAppearance(
 {
     public static CharacterAppearance Default => new(new Dictionary<string, int>
     {
-        ["Body"] = 0,
+        ["Bodies"] = 0,
         ["Eyes"] = 0,
-        ["Outfit"] = 0,
-        ["Hairstyle"] = 0,
-        ["Accessory"] = 0
+        ["Outfits"] = 0,
+        ["Hairstyles"] = 0,
+        ["Accessories"] = 0
     });
 }

@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OctarineCodex", "OctarineCo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OctarineCodex.Tests", "OctarineCodex.Tests\OctarineCodex.Tests.csproj", "{55DAADC3-0F12-407E-B5D2-2623DCB5861B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnimationJsonCleaner", "Tools\AnimationJsonCleaner\AnimationJsonCleaner.csproj", "{F8F70150-6496-4E88-B6FE-EDE63E3E16B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{55DAADC3-0F12-407E-B5D2-2623DCB5861B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{55DAADC3-0F12-407E-B5D2-2623DCB5861B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{55DAADC3-0F12-407E-B5D2-2623DCB5861B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F8F70150-6496-4E88-B6FE-EDE63E3E16B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8F70150-6496-4E88-B6FE-EDE63E3E16B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8F70150-6496-4E88-B6FE-EDE63E3E16B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8F70150-6496-4E88-B6FE-EDE63E3E16B1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

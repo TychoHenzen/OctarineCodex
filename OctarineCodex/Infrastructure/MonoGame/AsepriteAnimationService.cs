@@ -24,18 +24,18 @@ public interface IAsepriteAnimationService
 public class AsepriteAnimationService : IAsepriteAnimationService
 {
     private readonly AsepriteToLDtkBridge _bridge;
-    private readonly ContentManager _contentManager;
+    private readonly ContentManager _content;
     private readonly Dictionary<string, Dictionary<string, AsepriteAnimation>> _loadedAnimations;
     private readonly Dictionary<string, AsepriteAnimationData> _loadedData;
     private readonly AsepriteAnimationLoader _loader;
 
-    public AsepriteAnimationService(ContentManager contentManager)
+    public AsepriteAnimationService(ContentManager content)
     {
-        _contentManager = contentManager;
         _loader = new AsepriteAnimationLoader();
         _bridge = new AsepriteToLDtkBridge();
         _loadedData = new Dictionary<string, AsepriteAnimationData>();
         _loadedAnimations = new Dictionary<string, Dictionary<string, AsepriteAnimation>>();
+        _content = content;
     }
 
     public Dictionary<string, AsepriteAnimation> LoadAnimations(string jsonPath)
@@ -46,7 +46,7 @@ public class AsepriteAnimationService : IAsepriteAnimationService
         }
 
         // Load JSON from content pipeline
-        var jsonContent = File.ReadAllText(_contentManager.RootDirectory + "/" + jsonPath);
+        var jsonContent = File.ReadAllText(_content.RootDirectory + "/" + jsonPath);
         AsepriteAnimationData asepriteData = AsepriteAnimationData.FromJson(jsonContent);
 
         Dictionary<string, AsepriteAnimation> animations = _loader.LoadAnimations(asepriteData);

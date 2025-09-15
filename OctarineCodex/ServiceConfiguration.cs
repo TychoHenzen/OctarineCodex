@@ -2,11 +2,10 @@
 
 using System;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using OctarineCodex.Application.Entities;
 using OctarineCodex.Application.Messaging;
 using OctarineCodex.Application.Services;
-using static OctarineCodex.OctarineConstants;
 
 namespace OctarineCodex;
 
@@ -21,6 +20,7 @@ public static class ServiceConfiguration
     ///     Most services are auto-discovered via [Service&lt;TImplementation&gt;] attributes.
     /// </summary>
     /// <param name="services">The service collection to register services with.</param>
+    /// <param name="gameHost">The game host instance to get ContentManager from.</param>
     /// <returns>The service collection for method chaining.</returns>
     public static IServiceCollection AddOctarineServices(this IServiceCollection services)
     {
@@ -33,6 +33,7 @@ public static class ServiceConfiguration
         return services;
     }
 
+
     /// <summary>
     ///     Register services that require custom configuration and cannot be auto-discovered.
     /// </summary>
@@ -41,9 +42,15 @@ public static class ServiceConfiguration
         // Game host
         services.AddSingleton<OctarineGameHost>();
 
+        // Register ContentManager factory - will be resolved when Game.Content is available
+        services.AddSingleton<ContentManager>(provider =>
+        {
+            var gameHost = provider.GetRequiredService<OctarineGameHost>();
+            return gameHost.Content;
+        });
+
         // Entity behavior registry (no interface, just concrete class)
         services.AddSingleton<EntityBehaviorRegistry>();
-
         return services;
     }
 

@@ -16,8 +16,10 @@ public class PlayerMovementBehavior(
     ICollisionSystem collisionSystem)
     : EntityBehavior
 {
-    private bool _hasCollisionComponent;
     private string _entityId = string.Empty;
+    private bool _hasCollisionComponent;
+    private Vector2 _previousInput = Vector2.Zero;
+    private bool _wasMovingLastFrame;
 
     public override bool ShouldApplyTo(EntityWrapper entity)
     {
@@ -52,34 +54,48 @@ public class PlayerMovementBehavior(
         }
 
         var dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
-        Vector2 dir = inputService.GetMovementDirection();
-        Vector2 delta = ComputeDelta(dir, OctarineConstants.PlayerSpeed, dt);
-
-        if (delta == Vector2.Zero)
-        {
-            return;
-        }
+        Vector2 currentInput = inputService.GetMovementDirection();
+        Vector2 delta = ComputeDelta(currentInput, OctarineConstants.PlayerSpeed, dt);
 
         var previousPos = Entity.Position;
-        Vector2 desiredPos = Entity.Position + delta;
+        var hasInput = currentInput != Vector2.Zero;
+        var inputChanged = currentInput != _previousInput;
 
-        // Use new collision system for movement resolution
-        Vector2 correctedPos = collisionSystem.ResolveMovement(_entityId, Entity.Position, desiredPos);
-
-        Entity.Position = correctedPos;
-        collisionSystem.UpdateEntityPosition(_entityId, correctedPos);
-
-        // Send movement messages
-        if (correctedPos != desiredPos)
+        // Handle movement when there's input
+        if (hasInput)
         {
-            Entity.SendMessage(new MovementBlockedMessage(dir, delta, "Collision"));
+            Vector2 desiredPos = Entity.Position + delta;
+            Vector2 correctedPos = collisionSystem.ResolveMovement(_entityId, Entity.Position, desiredPos);
+
+            Entity.Position = correctedPos;
+            collisionSystem.UpdateEntityPosition(_entityId, correctedPos);
+
+            // Check if movement was successful or blocked
+            if (correctedPos != desiredPos)
+            {
+                // Movement was blocked - player is pushing against something
+                Entity.SendMessage(new MovementBlockedMessage(currentInput, delta, "Collision"));
+                _wasMovingLastFrame = false;
+            }
+            else if (correctedPos != previousPos)
+            {
+                // Successful movement
+                Vector2 actualDelta = correctedPos - previousPos;
+                Entity.SendGlobalMessage(new PlayerMovedMessage(correctedPos, actualDelta));
+                _wasMovingLastFrame = true;
+            }
+        }
+        else
+        {
+            // No input - send idle message if we were previously moving or input just stopped
+            if (_wasMovingLastFrame || inputChanged)
+            {
+                Entity.SendMessage(new PlayerIdleMessage());
+                _wasMovingLastFrame = false;
+            }
         }
 
-        if (correctedPos != previousPos)
-        {
-            Vector2 actualDelta = correctedPos - previousPos;
-            Entity.SendGlobalMessage(new PlayerMovedMessage(correctedPos, actualDelta));
-        }
+        _previousInput = currentInput;
     }
 
     public override void Cleanup()
@@ -113,8 +129,6 @@ public class PlayerMovementBehavior(
             CollidesWith = CollisionLayers.Solid | CollisionLayers.Platform, IsStatic = false
         };
 
-        // Re-register every frame - the collision system will handle this efficiently
         collisionSystem.RegisterEntity(_entityId, collisionComponent, Entity.Position);
     }
-
 }
