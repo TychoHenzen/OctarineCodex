@@ -6,14 +6,14 @@ namespace OctarineCodex.Domain.Animation;
 
 /// <summary>
 /// Bridges Aseprite animation data to existing LDtk animation system
-/// Allows gradual migration and compatibility with existing magic system
+/// Allows gradual migration and compatibility with existing magic system.
 /// </summary>
-public class AsepriteToLDtkBridge
+public static class AsepriteToLDtkBridge
 {
     /// <summary>
-    /// Convert Aseprite animation to LDtk format for compatibility
+    /// Convert Aseprite animation to LDtk format for compatibility.
     /// </summary>
-    public LDtkAnimationData ConvertToLDtkFormat(AsepriteAnimation asepriteAnim)
+    public static LDtkAnimationData ConvertToLDtkFormat(AsepriteAnimation asepriteAnim)
     {
         // Generate tile IDs based on frame positions
         var tileIds = asepriteAnim.Frames.Select(frame =>

@@ -4,24 +4,14 @@ using OctarineCodex.Domain.Physics.Shapes;
 
 namespace OctarineCodex.Application.Components;
 
-public sealed class CollisionComponent
+public sealed class CollisionComponent(ICollisionShape shape, CollisionLayers layers = CollisionLayers.Entity)
 {
-    public ICollisionShape Shape { get; set; }
-    public CollisionLayers Layers { get; set; }
-    public CollisionLayers CollidesWith { get; set; }
-    public bool IsTrigger { get; set; }
-    public bool IsStatic { get; set; }
-    public Vector2 Velocity { get; set; }
-
-    public CollisionComponent(ICollisionShape shape, CollisionLayers layers = CollisionLayers.Entity)
-    {
-        Shape = shape;
-        Layers = layers;
-        CollidesWith = CollisionLayers.All;
-        IsTrigger = false;
-        IsStatic = false;
-        Velocity = Vector2.Zero;
-    }
+    public ICollisionShape Shape { get; set; } = shape;
+    public CollisionLayers Layers { get; set; } = layers;
+    public CollisionLayers CollidesWith { get; init; } = CollisionLayers.All;
+    public bool IsTrigger { get; set; } = false;
+    public bool IsStatic { get; set; } = false;
+    public Vector2 Velocity { get; set; } = Vector2.Zero;
 
     public bool CanCollideWith(CollisionComponent other)
     {

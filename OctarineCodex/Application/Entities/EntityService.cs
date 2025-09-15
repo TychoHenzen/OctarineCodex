@@ -24,7 +24,6 @@ public class EntityService(
 {
     private readonly List<EntityWrapper> _allEntities = [];
 
-
     /// <summary>
     ///     Cleanup all entities and messaging when shutting down.
     /// </summary>
@@ -32,17 +31,6 @@ public class EntityService(
     {
         Dispose(true);
         GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!disposing)
-        {
-            return;
-        }
-
-        DisposeAllEntities();
-        messageBus.Clear();
     }
 
     public void InitializeEntities(IEnumerable<LDtkLevel> levels)
@@ -64,7 +52,8 @@ public class EntityService(
 
     public void UpdateEntitiesForCurrentLayer(IEnumerable<LDtkLevel> currentLayerLevels)
     {
-        var levelCount = currentLayerLevels.Count();
+        List<LDtkLevel> lDtkLevels = [.. currentLayerLevels];
+        var levelCount = lDtkLevels.Count;
         logger.Debug($"Updating entities for current layer with {levelCount} levels (preserving player)");
 
         // Preserve the current player entity
@@ -85,7 +74,7 @@ public class EntityService(
         logger.Debug($"Preserved player entity at {currentPlayer.Position}");
 
         // Load non-player entities from new layer
-        foreach (var level in currentLayerLevels)
+        foreach (LDtkLevel level in lDtkLevels)
         {
             var entities = GetAllEntitiesFromLevel(level);
             foreach (var entity in entities)
@@ -168,6 +157,16 @@ public class EntityService(
         return GetAllEntities().First(e => e.EntityType == OctarineConstants.PlayerEntityName);
     }
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing)
+        {
+            return;
+        }
+
+        DisposeAllEntities();
+        messageBus.Clear();
+    }
 
     private void DisposeAllEntities()
     {
@@ -217,6 +216,7 @@ public class EntityService(
                     $"Failed to get entities of type {entityType.Name} from level {level.Identifier}");
             }
         }
+
         return entities;
     }
 

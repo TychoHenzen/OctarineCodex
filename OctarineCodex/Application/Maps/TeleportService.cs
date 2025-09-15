@@ -18,11 +18,11 @@ public class TeleportService(IEntityService entityService, IWorldLayerService wo
         _teleports.Clear();
 
         // Get all entity wrappers to check for teleport-like entities
-        IEnumerable<EntityWrapper> allEntities = entityService.GetAllEntities();
-        logger.Debug($"TeleportService: Checking {allEntities.Count()} total entities for teleports");
+        List<EntityWrapper> allEntities = entityService.GetAllEntities().ToList();
+        logger.Debug($"TeleportService: Checking {allEntities.Count} total entities for teleports");
 
         var teleportLikeEntities = allEntities.Where(e =>
-            e.EntityType.ToLowerInvariant().Contains("teleport")).ToList();
+            e.EntityType.Contains("teleport", StringComparison.InvariantCultureIgnoreCase)).ToList();
 
         logger.Debug(
             $"Found {teleportLikeEntities.Count} teleport-like entities: {string.Join(", ", teleportLikeEntities.Select(e => $"{e.EntityType}@{e.Position}"))}");
@@ -30,41 +30,34 @@ public class TeleportService(IEntityService entityService, IWorldLayerService wo
         foreach (var entity in teleportLikeEntities)
         {
             // Check if entity has a destination field
-            if (entity.HasField("destination"))
-            {
-                try
-                {
-                    var destination = entity.GetField<EntityReference>("destination");
-                    if (destination != null)
-                    {
-                        var destinationInfo = ResolveDestination(destination);
-                        if (destinationInfo.HasValue)
-                        {
-                            _teleports.Add(new TeleportData
-                            {
-                                Position = entity.Position,
-                                Size = entity.Size,
-                                TargetWorldDepth = destinationInfo.Value.WorldDepth,
-                                TargetPosition = destinationInfo.Value.Position
-                            });
-                        }
-                        else
-                            logger.Warn($"Could not resolve destination for teleport at {entity.Position}");
-                    }
-                    else
-                    {
-                        logger.Debug($"Teleport at {entity.Position} has null destination");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Warn($"Failed to get destination field for teleport at {entity.Position}: {ex.Message}");
-                }
-            }
-            else
+            if (!entity.HasField("destination"))
             {
                 logger.Debug(
                     $"Teleport-like entity {entity.EntityType} at {entity.Position} has no destination field");
+                return;
+            }
+
+            try
+            {
+                var destination = entity.GetField<EntityReference>("destination");
+                (Vector2 Position, int WorldDepth)? destinationInfo = ResolveDestination(destination);
+                if (!destinationInfo.HasValue)
+                {
+                    logger.Warn($"Could not resolve destination for teleport at {entity.Position}");
+                    return;
+                }
+
+                _teleports.Add(new TeleportData
+                {
+                    Position = entity.Position,
+                    Size = entity.Size,
+                    TargetWorldDepth = destinationInfo.Value.WorldDepth,
+                    TargetPosition = destinationInfo.Value.Position
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.Warn($"Failed to get destination field for teleport at {entity.Position}: {ex.Message}");
             }
         }
 
@@ -77,7 +70,10 @@ public class TeleportService(IEntityService entityService, IWorldLayerService wo
         return CheckTeleportProximity(playerPosition, out targetWorldDepth, out targetPosition);
     }
 
-    public bool CheckTeleportInteraction(Vector2 playerPosition, bool inputPressed, out int targetWorldDepth,
+    public bool CheckTeleportInteraction(
+        Vector2 playerPosition,
+        bool inputPressed,
+        out int targetWorldDepth,
         out Vector2? targetPosition)
     {
         // Check if player is in range of any teleport
@@ -92,6 +88,25 @@ public class TeleportService(IEntityService entityService, IWorldLayerService wo
         targetWorldDepth = worldLayerService.CurrentWorldDepth;
         targetPosition = null;
         return false;
+    }
+
+    private static EntityInstance? FindEntityInLevel(LDtkLevel level, Guid entityIid)
+    {
+        if (level.LayerInstances == null)
+        {
+            return null;
+        }
+
+        foreach (LayerInstance? layer in level.LayerInstances.Where(l => l._Type == LayerType.Entities))
+        {
+            EntityInstance? entity = layer.EntityInstances.FirstOrDefault(e => e.Iid == entityIid);
+            if (entity != null)
+            {
+                return entity;
+            }
+        }
+
+        return null;
     }
 
     private (Vector2 Position, int WorldDepth)? ResolveDestination(EntityReference entityRef)
@@ -117,29 +132,9 @@ public class TeleportService(IEntityService entityService, IWorldLayerService wo
 
         var worldPosition = new Vector2(
             targetLevel.WorldX + targetEntity.Px.X,
-            targetLevel.WorldY + targetEntity.Px.Y
-        );
+            targetLevel.WorldY + targetEntity.Px.Y);
 
         return (worldPosition, targetLevel.WorldDepth);
-    }
-
-    private static EntityInstance? FindEntityInLevel(LDtkLevel level, Guid entityIid)
-    {
-        if (level.LayerInstances == null)
-        {
-            return null;
-        }
-
-        foreach (var layer in level.LayerInstances.Where(l => l._Type == LayerType.Entities))
-        {
-            var entity = layer.EntityInstances.FirstOrDefault(e => e.Iid == entityIid);
-            if (entity != null)
-            {
-                return entity;
-            }
-        }
-
-        return null;
     }
 
     private bool CheckTeleportProximity(Vector2 playerPosition, out int targetWorldDepth, out Vector2? targetPosition)
@@ -147,30 +142,28 @@ public class TeleportService(IEntityService entityService, IWorldLayerService wo
         targetWorldDepth = worldLayerService.CurrentWorldDepth;
         targetPosition = null;
 
-        const float interactionDistance = 48f; // Increased from 16 to 48 pixels for easier interaction
+        const float interactionDistance = 16f; // Increased from 16 to 48 pixels for easier interaction
 
-        foreach (var teleport in _teleports)
+        TeleportData? teleport = _teleports
+            .Select(teleport =>
+                new { teleport, distance = Vector2.Distance(playerPosition, teleport.Position) })
+            .Where(t => t.distance <= interactionDistance)
+            .Select(t => t.teleport).FirstOrDefault();
+        if (teleport == null)
         {
-            var distance = Vector2.Distance(playerPosition, teleport.Position);
-
-            // Debug log every few frames to see proximity
-
-            if (distance <= interactionDistance)
-            {
-                targetWorldDepth = teleport.TargetWorldDepth;
-                targetPosition = teleport.TargetPosition;
-                return true;
-            }
+            return false;
         }
 
-        return false;
+        targetWorldDepth = teleport.TargetWorldDepth;
+        targetPosition = teleport.TargetPosition;
+        return true;
     }
 
     private sealed class TeleportData
     {
-        public Vector2 Position { get; set; }
+        public Vector2 Position { get; init; }
         public Vector2 Size { get; set; }
-        public int TargetWorldDepth { get; set; }
-        public Vector2 TargetPosition { get; set; }
+        public int TargetWorldDepth { get; init; }
+        public Vector2 TargetPosition { get; init; }
     }
 }

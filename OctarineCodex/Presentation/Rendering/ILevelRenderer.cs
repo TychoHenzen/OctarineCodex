@@ -4,7 +4,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using OctarineCodex.Application.Services;
-using OctarineCodex.Presentation.Camera;
 
 namespace OctarineCodex.Presentation.Rendering;
 
@@ -15,12 +14,18 @@ public interface ILevelRenderer
     void SetLDtkContext(LDtkFile file);
     void LoadTilesets(ContentManager content);
 
-    void RenderLevelsBeforePlayer(IEnumerable<LDtkLevel> levels, SpriteBatch spriteBatch, Camera2D camera,
-        Vector2 playerPosition);
+    void RenderLevelsBeforePlayer(
+        IEnumerable<LDtkLevel> levels,
+        SpriteBatch spriteBatch,
+        Vector2? playerPosition);
 
-    void RenderLevelsAfterPlayer(IEnumerable<LDtkLevel> levels, SpriteBatch spriteBatch, Camera2D camera,
-        Vector2 playerPosition);
+    void RenderLevelsAfterPlayer(
+        IEnumerable<LDtkLevel> levels,
+        SpriteBatch spriteBatch,
+        Vector2? playerPosition);
 
-    void RenderForegroundLayers(IEnumerable<LDtkLevel> levels, SpriteBatch spriteBatch, Camera2D camera,
-        Vector2 playerPosition);
+    void RenderForegroundLayers(
+        IEnumerable<LDtkLevel> levels,
+        SpriteBatch spriteBatch,
+        Vector2? playerPosition);
 }

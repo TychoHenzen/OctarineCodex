@@ -27,15 +27,20 @@ public class OctarineGameHost(
     ICameraService cameraService)
     : Game
 {
+    private GraphicsDeviceManager _graphics;
 
     // Rendering system
     private RenderTarget2D _renderTarget = null!;
     private SpriteBatch _spriteBatch = null!;
-    private GraphicsDeviceManager _graphics;
 
-    public void Initialize()
+    public void init()
     {
         _graphics = new GraphicsDeviceManager(this);
+    }
+
+    protected override void Initialize()
+    {
+        // Graphics manager is already created in constructor
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
 
@@ -43,6 +48,8 @@ public class OctarineGameHost(
         IsFixedTimeStep = false;
         _graphics.SynchronizeWithVerticalRetrace = false;
         _graphics.ApplyChanges();
+
+        base.Initialize(); // Call base after setting up graphics
     }
 
     protected override void LoadContent()
@@ -106,7 +113,10 @@ public class OctarineGameHost(
         GraphicsDevice.SetRenderTarget(_renderTarget);
         GraphicsDevice.Clear(Color.Black);
 
-        if (mapService.IsLoaded)
+        if (!mapService.IsLoaded)
+        {
+        }
+        else
         {
             EntityWrapper? player = entityService.GetPlayerEntity();
             Matrix worldMatrix = cameraService.GetTransformMatrix() * Matrix.CreateScale(WorldRenderScale);
@@ -116,19 +126,25 @@ public class OctarineGameHost(
             IReadOnlyList<LDtkLevel> currentLayerLevels = worldLayerService.GetCurrentLayerLevels();
 
             // Render background and collision layers (behind player)
-            levelRenderer.RenderLevelsBeforePlayer(currentLayerLevels, _spriteBatch, cameraService.Camera,
-                player?.Position ?? Vector2.Zero);
+            levelRenderer.RenderLevelsBeforePlayer(
+                currentLayerLevels,
+                _spriteBatch,
+                player.Position);
 
             // Render entities at correct depth (includes teleport indicators via behaviors)
             entityService.Draw(_spriteBatch);
 
             // Render wall tiles in front of player (Y-sorted)
-            levelRenderer.RenderLevelsAfterPlayer(currentLayerLevels, _spriteBatch, cameraService.Camera,
-                player?.Position ?? Vector2.Zero);
+            levelRenderer.RenderLevelsAfterPlayer(
+                currentLayerLevels,
+                _spriteBatch,
+                player.Position);
 
             // Render foreground tiles (always on top)
-            levelRenderer.RenderForegroundLayers(currentLayerLevels, _spriteBatch, cameraService.Camera,
-                player?.Position ?? Vector2.Zero);
+            levelRenderer.RenderForegroundLayers(
+                currentLayerLevels,
+                _spriteBatch,
+                player.Position);
 
             _spriteBatch.End();
         }

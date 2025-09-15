@@ -24,7 +24,7 @@ public interface IMapService
     LDtkFile LoadedFile { get; }
 
     /// <summary>
-    ///     Indicates if any levels are currently loaded.
+    ///     Gets a value indicating whether any levels are currently loaded.
     /// </summary>
     bool IsLoaded { get; }
 

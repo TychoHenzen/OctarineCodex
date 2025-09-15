@@ -20,7 +20,7 @@ public static class LDtkAnimationLoader
     ///     - animSpeed: Float - Animation speed in FPS
     ///     - animLoop: Bool - Whether animation loops
     ///     - animType: Enum(Simple,Triggered,StateMachine) - Animation type
-    ///     - animLayers: Array&lt;String&gt; - For layered character animations
+    ///     - animLayers: Array&lt;String&gt; - For layered character animations.
     /// </summary>
     public static LDtkAnimationData? LoadFromEntity(EntityInstance entity)
     {

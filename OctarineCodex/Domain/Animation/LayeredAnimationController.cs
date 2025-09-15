@@ -10,7 +10,7 @@ namespace OctarineCodex.Domain.Animation;
 ///     Manages multiple synchronized animation layers for character customization.
 ///     Each layer (base, clothing, armor, weapon) can have its own animation while staying synchronized.
 /// </summary>
-public class LayeredAnimationController : IAnimationComponent
+public class LayeredAnimationController : ILayeredAnimationController
 {
     private readonly Dictionary<string, Dictionary<string, LDtkAnimationData>> _layerAnimations = [];
     private readonly Dictionary<string, AnimationLayer> _layers = [];
@@ -72,9 +72,9 @@ public class LayeredAnimationController : IAnimationComponent
         _layers[layerName] = new AnimationLayer(layerName, priority);
 
         // Start with the current state if this layer has it
-        if (animations.ContainsKey(CurrentState))
+        if (animations.TryGetValue(CurrentState, out LDtkAnimationData animation))
         {
-            _layers[layerName].SetAnimation(animations[CurrentState]);
+            _layers[layerName].SetAnimation(animation);
         }
     }
 
@@ -88,7 +88,7 @@ public class LayeredAnimationController : IAnimationComponent
     }
 
     /// <summary>
-    ///     Gets animation data for a specific layer, sorted by render priority.
+    ///     Gets animation data for all layers, sorted by render priority.
     /// </summary>
     public IEnumerable<LayerRenderData> GetLayerRenderData()
     {
@@ -102,57 +102,3 @@ public class LayeredAnimationController : IAnimationComponent
                 layer.Alpha));
     }
 }
-
-/// <summary>
-///     Individual animation layer within a layered animation system.
-/// </summary>
-public class AnimationLayer
-{
-    private readonly SimpleAnimationComponent _animation = new();
-
-    public AnimationLayer(string name, int priority)
-    {
-        Name = name;
-        Priority = priority;
-    }
-
-    public string Name { get; }
-    public int Priority { get; }
-    public bool IsVisible { get; set; } = true;
-    public float Alpha { get; set; } = 1.0f;
-    public bool IsComplete => _animation.IsComplete;
-
-    public void SetAnimation(LDtkAnimationData animationData)
-    {
-        _animation.SetAnimation(animationData);
-    }
-
-    public void Update(GameTime gameTime)
-    {
-        _animation.Update(gameTime);
-    }
-
-    public void Stop()
-    {
-        _animation.StopAnimation();
-    }
-
-    public int GetCurrentFrame()
-    {
-        return _animation.GetCurrentFrame();
-    }
-
-    public int GetCurrentTileId()
-    {
-        return _animation.GetCurrentTileId();
-    }
-}
-
-/// <summary>
-///     Data for rendering a single animation layer.
-/// </summary>
-public readonly record struct LayerRenderData(
-    string LayerName,
-    int TileId,
-    int Priority,
-    float Alpha);

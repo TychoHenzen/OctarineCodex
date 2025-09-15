@@ -15,18 +15,11 @@ namespace OctarineCodex.Presentation.Rendering;
 ///     Unified level renderer that can handle both single and multiple LDtk levels
 ///     with automatic viewport culling and world positioning.
 /// </summary>
-public sealed class LevelRenderer(ILoggingService logger) : ILevelRenderer, IDisposable
+public sealed class LevelRenderer(ILoggingService logger, ICameraService cameraService) : ILevelRenderer, IDisposable
 {
     private readonly Dictionary<string, Texture2D> _loadedTextures = [];
     private readonly Dictionary<string, Dictionary<int, TileDepthCategory>> _tileDepthCache = [];
     private LDtkFile? _ldtkFile;
-
-    private enum TileDepthCategory
-    {
-        Ground, // Always behind player (floors, shadows)
-        Wall, // Y-sorted with player (wall faces)
-        Foreground // Always in front of player (outlines, overhangs)
-    }
 
     private GraphicsDevice GraphicsDevice { get; set; } = null!;
 
@@ -115,11 +108,9 @@ public sealed class LevelRenderer(ILoggingService logger) : ILevelRenderer, IDis
     public void RenderForegroundLayers(
         IEnumerable<LDtkLevel> levels,
         SpriteBatch spriteBatch,
-        Camera2D camera,
-        Vector2 playerPosition)
+        Vector2? playerPosition)
     {
         ArgumentNullException.ThrowIfNull(spriteBatch);
-        ArgumentNullException.ThrowIfNull(camera);
         ArgumentNullException.ThrowIfNull(levels);
         ArgumentNullException.ThrowIfNull(GraphicsDevice);
 
@@ -132,7 +123,7 @@ public sealed class LevelRenderer(ILoggingService logger) : ILevelRenderer, IDis
                 RenderSingleLevelForegroundLayers(levelsList[0], spriteBatch, Vector2.Zero);
                 return;
             default:
-                RenderWorldLevelsForegroundLayers(levelsList, spriteBatch, camera);
+                RenderWorldLevelsForegroundLayers(levelsList, spriteBatch, cameraService.Camera);
                 break;
         }
     }
@@ -140,23 +131,22 @@ public sealed class LevelRenderer(ILoggingService logger) : ILevelRenderer, IDis
     public void RenderLevelsBeforePlayer(
         IEnumerable<LDtkLevel> levels,
         SpriteBatch spriteBatch,
-        Camera2D camera,
-        Vector2 playerPosition)
+        Vector2? playerPosition)
     {
         ArgumentNullException.ThrowIfNull(spriteBatch);
-        ArgumentNullException.ThrowIfNull(camera);
         ArgumentNullException.ThrowIfNull(levels);
         ArgumentNullException.ThrowIfNull(GraphicsDevice);
+        playerPosition ??= Vector2.Zero;
         var levelsList = levels.ToList();
         switch (levelsList.Count)
         {
             case 0:
                 return;
             case 1:
-                RenderSingleLevelBeforePlayer(levelsList[0], spriteBatch, Vector2.Zero, playerPosition);
+                RenderSingleLevelBeforePlayer(levelsList[0], spriteBatch, Vector2.Zero, playerPosition.Value);
                 return;
             default:
-                RenderWorldLevelsBeforePlayer(levelsList, spriteBatch, camera, playerPosition);
+                RenderWorldLevelsBeforePlayer(levelsList, spriteBatch, cameraService.Camera, playerPosition.Value);
                 break;
         }
     }
@@ -164,13 +154,12 @@ public sealed class LevelRenderer(ILoggingService logger) : ILevelRenderer, IDis
     public void RenderLevelsAfterPlayer(
         IEnumerable<LDtkLevel> levels,
         SpriteBatch spriteBatch,
-        Camera2D camera,
-        Vector2 playerPosition)
+        Vector2? playerPosition)
     {
         ArgumentNullException.ThrowIfNull(spriteBatch);
-        ArgumentNullException.ThrowIfNull(camera);
         ArgumentNullException.ThrowIfNull(levels);
         ArgumentNullException.ThrowIfNull(GraphicsDevice);
+        playerPosition ??= Vector2.Zero;
 
         var levelsList = levels.ToList();
         switch (levelsList.Count)
@@ -178,10 +167,10 @@ public sealed class LevelRenderer(ILoggingService logger) : ILevelRenderer, IDis
             case 0:
                 return;
             case 1:
-                RenderSingleLevelAfterPlayer(levelsList[0], spriteBatch, Vector2.Zero, playerPosition);
+                RenderSingleLevelAfterPlayer(levelsList[0], spriteBatch, Vector2.Zero, playerPosition.Value);
                 return;
             default:
-                RenderWorldLevelsAfterPlayer(levelsList, spriteBatch, camera, playerPosition);
+                RenderWorldLevelsAfterPlayer(levelsList, spriteBatch, cameraService.Camera, playerPosition.Value);
                 break;
         }
     }
@@ -767,5 +756,12 @@ public sealed class LevelRenderer(ILoggingService logger) : ILevelRenderer, IDis
         }
 
         _loadedTextures.Clear();
+    }
+
+    private enum TileDepthCategory
+    {
+        Ground, // Always behind player (floors, shadows)
+        Wall, // Y-sorted with player (wall faces)
+        Foreground // Always in front of player (outlines, overhangs)
     }
 }

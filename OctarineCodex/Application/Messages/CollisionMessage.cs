@@ -17,7 +17,3 @@ public sealed class CollisionMessage(
     public Vector2 ContactNormal { get; } = contactNormal;
     public float PenetrationDepth { get; } = penetrationDepth;
 }
-
-// OctarineCodex/Collision/Messages/TriggerEnterMessage.cs
-
-// OctarineCodex/Collision/Messages/TriggerExitMessage.cs

@@ -26,7 +26,7 @@ public class MapSystemIntegrationTests
     {
         // Arrange
         var mapService = new MapService(_logger);
-        var renderer = new LevelRenderer(_logger);
+        var renderer = new LevelRenderer(_logger, null!);
         var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
 
         // Act - Load level
@@ -65,17 +65,17 @@ public class MapSystemIntegrationTests
         var testPlayerPosition = Vector2.Zero;
 
         var renderBeforeAction = () =>
-            renderer.RenderLevelsBeforePlayer(mapService.CurrentLevels, null!, null!, testPlayerPosition);
+            renderer.RenderLevelsBeforePlayer(mapService.CurrentLevels, null!, testPlayerPosition);
         renderBeforeAction.Should().Throw<ArgumentNullException>()
             .WithParameterName("spriteBatch");
 
         var renderAfterAction = () =>
-            renderer.RenderLevelsAfterPlayer(mapService.CurrentLevels, null!, null!, testPlayerPosition);
+            renderer.RenderLevelsAfterPlayer(mapService.CurrentLevels, null!, testPlayerPosition);
         renderAfterAction.Should().Throw<ArgumentNullException>()
             .WithParameterName("spriteBatch");
 
         var renderForegroundAction = () =>
-            renderer.RenderForegroundLayers(mapService.CurrentLevels, null!, null!, testPlayerPosition);
+            renderer.RenderForegroundLayers(mapService.CurrentLevels, null!, testPlayerPosition);
         renderForegroundAction.Should().Throw<ArgumentNullException>()
             .WithParameterName("spriteBatch");
     }
@@ -109,7 +109,7 @@ public class MapSystemIntegrationTests
     public void LevelRenderer_ShouldImplementIDisposable()
     {
         // Arrange
-        var renderer = new LevelRenderer(_logger);
+        var renderer = new LevelRenderer(_logger, null!);
 
         // Act & Assert - Should not throw when disposed
         var disposeAction = () => renderer.Dispose();
@@ -160,7 +160,7 @@ public class MapSystemIntegrationTests
     public async Task LevelRenderer_DepthSortedRendering_ShouldValidateArguments()
     {
         // Arrange
-        var renderer = new LevelRenderer(_logger);
+        var renderer = new LevelRenderer(_logger, null!);
         var mapService = new MapService(_logger);
         var filePath = Path.Combine("..", "..", "..", "..", "OctarineCodex", "Content", "Room1.ldtk");
         var file = await Task.Run(() => LDtkFile.FromFile(filePath));
@@ -180,19 +180,19 @@ public class MapSystemIntegrationTests
         {
             // All rendering methods should validate required arguments regardless of player position
             var renderBeforeAction = () =>
-                renderer.RenderLevelsBeforePlayer(mapService.CurrentLevels, null!, null!, playerPos);
+                renderer.RenderLevelsBeforePlayer(mapService.CurrentLevels, null!, playerPos);
             renderBeforeAction.Should()
                 .Throw<ArgumentNullException>()
                 .WithParameterName("spriteBatch");
 
             var renderAfterAction = () =>
-                renderer.RenderLevelsAfterPlayer(mapService.CurrentLevels, null!, null!, playerPos);
+                renderer.RenderLevelsAfterPlayer(mapService.CurrentLevels, null!, playerPos);
             renderAfterAction.Should()
                 .Throw<ArgumentNullException>()
                 .WithParameterName("spriteBatch");
 
             var renderForegroundAction = () =>
-                renderer.RenderForegroundLayers(mapService.CurrentLevels, null!, null!, playerPos);
+                renderer.RenderForegroundLayers(mapService.CurrentLevels, null!, playerPos);
             renderForegroundAction.Should()
                 .Throw<ArgumentNullException>()
                 .WithParameterName("spriteBatch");

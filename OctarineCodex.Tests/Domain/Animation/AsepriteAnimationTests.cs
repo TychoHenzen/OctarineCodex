@@ -74,10 +74,9 @@ public class AsepriteAnimationTests
     {
         // Arrange
         AsepriteAnimationData asepriteData = AsepriteAnimationData.FromJson(SampleAsepriteJson);
-        var loader = new AsepriteAnimationLoader();
 
         // Act
-        Dictionary<string, AsepriteAnimation> animations = loader.LoadAnimations(asepriteData);
+        Dictionary<string, AsepriteAnimation> animations = AsepriteAnimationLoader.LoadAnimations(asepriteData);
 
         // Assert
         animations.Should().HaveCount(2);
@@ -95,8 +94,7 @@ public class AsepriteAnimationTests
     {
         // Arrange
         AsepriteAnimationData asepriteData = AsepriteAnimationData.FromJson(SampleAsepriteJson);
-        var loader = new AsepriteAnimationLoader();
-        Dictionary<string, AsepriteAnimation> animations = loader.LoadAnimations(asepriteData);
+        Dictionary<string, AsepriteAnimation> animations = AsepriteAnimationLoader.LoadAnimations(asepriteData);
 
         var component = new AsepriteAnimationComponent(animations, asepriteData);
 
@@ -108,14 +106,14 @@ public class AsepriteAnimationTests
         component.IsPlaying.Should().BeTrue();
 
         // First frame
-        AsepriteFrame currentFrame = component.GetCurrentFrameData();
+        AsepriteFrame currentFrame = component.CurrentFrameData;
         currentFrame.Frame.X.Should().Be(0);
         currentFrame.Frame.Y.Should().Be(32);
 
         // Update to second frame (duration 150ms = 0.15s)
         component.Update(new GameTime(TimeSpan.Zero, TimeSpan.FromMilliseconds(150)));
 
-        currentFrame = component.GetCurrentFrameData();
+        currentFrame = component.CurrentFrameData;
         currentFrame.Frame.X.Should().Be(16);
         currentFrame.Frame.Y.Should().Be(32);
     }
@@ -125,8 +123,7 @@ public class AsepriteAnimationTests
     {
         // Arrange
         AsepriteAnimationData asepriteData = AsepriteAnimationData.FromJson(SampleAsepriteJson);
-        var loader = new AsepriteAnimationLoader();
-        Dictionary<string, AsepriteAnimation> animations = loader.LoadAnimations(asepriteData);
+        Dictionary<string, AsepriteAnimation> animations = AsepriteAnimationLoader.LoadAnimations(asepriteData);
 
         var component = new AsepriteAnimationComponent(animations, asepriteData);
         component.PlayAnimation("idle_right");
@@ -136,7 +133,7 @@ public class AsepriteAnimationTests
         component.Update(new GameTime(TimeSpan.Zero, TimeSpan.FromMilliseconds(150))); // Should loop back to Frame 0
 
         // Assert
-        AsepriteFrame currentFrame = component.GetCurrentFrameData();
+        AsepriteFrame currentFrame = component.CurrentFrameData;
         currentFrame.Frame.X.Should().Be(0); // Back to first frame
         currentFrame.Frame.Y.Should().Be(32);
         component.IsComplete.Should().BeFalse(); // Looping animations are never complete
@@ -147,12 +144,10 @@ public class AsepriteAnimationTests
     {
         // Arrange
         AsepriteAnimationData asepriteData = AsepriteAnimationData.FromJson(SampleAsepriteJson);
-        var loader = new AsepriteAnimationLoader();
-        Dictionary<string, AsepriteAnimation> animations = loader.LoadAnimations(asepriteData);
-        var bridge = new AsepriteToLDtkBridge();
+        Dictionary<string, AsepriteAnimation> animations = AsepriteAnimationLoader.LoadAnimations(asepriteData);
 
         // Act
-        LDtkAnimationData ldtkAnimData = bridge.ConvertToLDtkFormat(animations["idle_right"]);
+        LDtkAnimationData ldtkAnimData = AsepriteToLDtkBridge.ConvertToLDtkFormat(animations["idle_right"]);
 
         // Assert
         ldtkAnimData.Name.Should().Be("idle_right");

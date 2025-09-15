@@ -10,18 +10,10 @@ using OctarineCodex.Infrastructure.Logging;
 
 namespace OctarineCodex.Application.Entities;
 
-public class EntityBehaviorRegistry
+public class EntityBehaviorRegistry(IServiceProvider services, ILoggingService logger)
 {
     private readonly Dictionary<string, bool> _applicabilityCache = new();
     private readonly List<BehaviorDescriptor> _behaviors = [];
-    private readonly ILoggingService _logger;
-    private readonly IServiceProvider _services;
-
-    public EntityBehaviorRegistry(IServiceProvider services, ILoggingService logger)
-    {
-        _services = services ?? throw new ArgumentNullException(nameof(services));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public void DiscoverBehaviors()
     {
@@ -40,16 +32,16 @@ public class EntityBehaviorRegistry
             {
                 BehaviorType = behaviorType,
                 Attribute = attribute,
-                Factory = () => (EntityBehavior)ActivatorUtilities.CreateInstance(_services, behaviorType)
+                Factory = () => (EntityBehavior)ActivatorUtilities.CreateInstance(services, behaviorType)
             };
 
             _behaviors.Add(descriptor);
-            _logger.Debug($"Registered behavior: {behaviorType.Name}");
+            logger.Debug($"Registered behavior: {behaviorType.Name}");
         }
 
         // Sort by priority
         _behaviors.Sort((a, b) => b.Attribute.Priority.CompareTo(a.Attribute.Priority));
-        _logger.Info($"Discovered {_behaviors.Count} entity behaviors");
+        logger.Info($"Discovered {_behaviors.Count} entity behaviors");
     }
 
     public void ApplyBehaviors(EntityWrapper entity)
@@ -60,11 +52,11 @@ public class EntityBehaviorRegistry
             {
                 var behavior = descriptor.Factory();
                 entity.AddBehavior(behavior);
-                _logger.Debug($"Applied {descriptor.BehaviorType.Name} to {entity.EntityType}");
+                logger.Debug($"Applied {descriptor.BehaviorType.Name} to {entity.EntityType}");
             }
             catch (Exception ex)
             {
-                _logger.Exception(ex, $"Failed to create behavior {descriptor.BehaviorType.Name}");
+                logger.Exception(ex, $"Failed to create behavior {descriptor.BehaviorType.Name}");
             }
         }
     }

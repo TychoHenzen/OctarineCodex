@@ -6,14 +6,14 @@ using System.Linq;
 namespace OctarineCodex.Domain.Animation;
 
 /// <summary>
-///     Loads and processes Aseprite animation data into game-ready animations
+///     Loads and processes Aseprite animation data into game-ready animations.
 /// </summary>
-public class AsepriteAnimationLoader
+public static class AsepriteAnimationLoader
 {
     /// <summary>
-    ///     Convert Aseprite JSON data into structured animations using frame tags
+    ///     Convert Aseprite JSON data into structured animations using frame tags.
     /// </summary>
-    public Dictionary<string, AsepriteAnimation> LoadAnimations(AsepriteAnimationData asepriteData)
+    public static Dictionary<string, AsepriteAnimation> LoadAnimations(AsepriteAnimationData asepriteData)
     {
         var animations = new Dictionary<string, AsepriteAnimation>();
 

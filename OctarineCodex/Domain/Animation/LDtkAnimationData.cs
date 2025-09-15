@@ -1,8 +1,6 @@
 ﻿// Domain/Animation/LDtkAnimationData.cs
 
 using System;
-using System.Collections.Generic;
-using OctarineCodex.Domain.Magic;
 
 namespace OctarineCodex.Domain.Animation;
 
@@ -48,30 +46,3 @@ public readonly record struct LDtkAnimationData(
         return new LDtkAnimationData(name, frameTileIds, frameRate, loop, type, nextAnimation);
     }
 }
-
-/// <summary>
-///     Defines how magic vectors influence animation behavior.
-/// </summary>
-public readonly record struct MagicInfluence(
-    EleAspects.Element Element,
-    float Multiplier,
-    float MinEffect = 0.1f,
-    float MaxEffect = 3.0f);
-
-/// <summary>
-///     Types of animations supported by the system.
-/// </summary>
-public enum AnimationType
-{
-    Simple, // Basic looping animation (torches, water)
-    Triggered, // Event-driven animation (doors, spikes)
-    StateMachine // Complex state-based animation (characters)
-}
-
-/// <summary>
-///     Animation state definition for complex character animations.
-/// </summary>
-public readonly record struct AnimationState(
-    string Name,
-    LDtkAnimationData Animation,
-    Dictionary<string, string> Transitions);

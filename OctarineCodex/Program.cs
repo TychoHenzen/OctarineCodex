@@ -17,7 +17,7 @@ public static class Program
 
         // Get the game host from DI instead of manual construction
         using var game = serviceProvider.GetRequiredService<OctarineGameHost>();
-        game.Initialize();
+        game.init();
         game.Window.AllowUserResizing = true;
         game.Run();
 

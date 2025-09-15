@@ -6,12 +6,14 @@
 public class MapLoadOptions
 {
     /// <summary>
-    ///     Load a specific level by identifier. If null, behavior depends on LoadAllLevels.
+    ///     Load a specific level by identifier.
+    ///     If null, behavior depends on LoadAllLevels.
     /// </summary>
-    public string? SpecificLevelIdentifier { get; set; }
+    public string? SpecificLevelIdentifier { get; init; }
 
     /// <summary>
-    ///     If true, loads all levels from the file. If false, loads only the first level or the specified level.
+    ///     If true, loads all levels from the file.
+    /// If false, loads only the first level or the specified level.
     /// </summary>
-    public bool LoadAllLevels { get; set; } = true;
+    public bool LoadAllLevels { get; init; } = true;
 }

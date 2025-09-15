@@ -11,25 +11,16 @@ namespace OctarineCodex.Application.Services;
 /// </summary>
 /// <typeparam name="TImplementation">The implementation class for this service interface.</typeparam>
 [AttributeUsage(AttributeTargets.Interface)]
-public class ServiceAttribute<TImplementation> : Attribute
+public class ServiceAttribute<TImplementation>(ServiceLifetime lifetime = ServiceLifetime.Singleton) : Attribute
     where TImplementation : class
 {
     /// <summary>
-    ///     Creates a service attribute with the specified lifetime.
-    /// </summary>
-    /// <param name="lifetime">The service lifetime (defaults to Singleton for game services).</param>
-    public ServiceAttribute(ServiceLifetime lifetime = ServiceLifetime.Singleton)
-    {
-        Lifetime = lifetime;
-    }
-
-    /// <summary>
     ///     The service lifetime for dependency injection registration.
     /// </summary>
-    public ServiceLifetime Lifetime { get; }
+    public ServiceLifetime Lifetime { get; } = lifetime;
 
     /// <summary>
-    ///     The implementation type for this service.
+    ///     Gets the implementation type for this service.
     /// </summary>
     public Type ImplementationType { get; } = typeof(TImplementation);
 }
