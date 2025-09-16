@@ -6,6 +6,8 @@ using Microsoft.Xna.Framework.Content;
 using OctarineCodex.Application.Entities;
 using OctarineCodex.Application.Messaging;
 using OctarineCodex.Application.Services;
+using OctarineCodex.Application.Systems;
+using OctarineCodex.Infrastructure.Ecs;
 
 namespace OctarineCodex;
 
@@ -51,12 +53,16 @@ public static class ServiceConfiguration
 
         // Entity behavior registry (no interface, just concrete class)
         services.AddSingleton<EntityBehaviorRegistry>();
+
+        services.AddSingleton<WorldManager>();
+        services.AddSingleton<SystemManager>();
+        services.AddSingleton<ComponentRegistry>();
+
+        // ECS Systems
+        services.AddScoped<RenderSystem>();
         return services;
     }
 
-    /// <summary>
-    ///     Initialize systems that require post-registration setup.
-    /// </summary>
     public static void InitializeGameSystems(IServiceProvider services)
     {
         var registry = services.GetRequiredService<EntityBehaviorRegistry>();
@@ -64,5 +70,17 @@ public static class ServiceConfiguration
 
         // Initialize messaging system
         MessagingExtensions.InitializeMessageHandlers(services);
+
+        // *** ADD ECS INITIALIZATION ***
+        // Initialize ECS world and systems
+        var worldManager = services.GetRequiredService<WorldManager>();
+        worldManager.Initialize();
+
+        var componentRegistry = services.GetRequiredService<ComponentRegistry>();
+        componentRegistry.DiscoverComponents();
+
+        // Register basic systems
+        var systemManager = services.GetRequiredService<SystemManager>();
+        systemManager.RegisterDrawSystem<RenderSystem>();
     }
 }

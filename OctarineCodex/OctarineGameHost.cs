@@ -2,6 +2,8 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using OctarineCodex.Application.GameState;
+using OctarineCodex.Application.Systems;
+using OctarineCodex.Infrastructure.Ecs;
 using OctarineCodex.Infrastructure.Logging;
 using static OctarineCodex.OctarineConstants;
 
@@ -11,7 +13,9 @@ public class OctarineGameHost(
     ILoggingService logger,
     IGameInitializationManager initializationManager,
     IGameUpdateManager updateManager,
-    IGameRenderManager renderManager)
+    IGameRenderManager renderManager,
+    SystemManager systemManager,
+    RenderSystem renderSystem)
     : Game
 {
     private GraphicsDeviceManager _graphics = null!;
@@ -62,6 +66,7 @@ public class OctarineGameHost(
     protected override void Update(GameTime gameTime)
     {
         updateManager.Update(gameTime);
+        systemManager.Update(gameTime);
 
         if (updateManager.ShouldExit)
         {
@@ -85,6 +90,15 @@ public class OctarineGameHost(
 
             // Delegate all rendering logic to the render manager
             renderManager.Draw(_spriteBatch, Vector2.Zero);
+
+            // ECS rendering - need to set SpriteBatch first
+            if (systemManager != null)
+            {
+                // Note: This is a simplified approach for Phase 1
+                // In Phase 2, we'll have a better way to access systems
+                renderSystem.SetSpriteBatch(_spriteBatch);
+                systemManager.Draw(gameTime);
+            }
 
             _spriteBatch.End();
         }
