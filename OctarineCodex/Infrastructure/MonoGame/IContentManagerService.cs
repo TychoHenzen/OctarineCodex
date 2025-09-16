@@ -5,7 +5,7 @@ namespace OctarineCodex.Infrastructure.MonoGame;
 /// <summary>
 ///     Abstraction over MonoGame ContentManager for dependency injection.
 /// </summary>
-[Service<ContentManagerService>]
+[Service<ContentManagerServiceFactory>]
 public interface IContentManagerService
 {
     /// <summary>

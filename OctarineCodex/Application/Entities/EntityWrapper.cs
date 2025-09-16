@@ -1,163 +1,148 @@
-﻿using System;
+﻿// OctarineCodex/Application/Entities/EntityWrapper.cs
+
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
+using DefaultEcs;
 using LDtk;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using OctarineCodex.Application.Messaging;
+using OctarineCodex.Domain.Components;
 using OctarineCodex.Domain.Entities;
 
 namespace OctarineCodex.Application.Entities;
 
-public sealed class EntityWrapper : IMessageReceiver, IDisposable
+/// <summary>
+///     Wrapper around LDtk entities that provides behavior management and component system.
+///     Bridge between LDtk data and game runtime during Phase 2 migration.
+/// </summary>
+public class EntityWrapper : IDisposable
 {
-    // Static instances to reduce allocations
-    private static readonly MessageOptions LocalImmediateOptions =
-        new() { Scope = MessageScope.Local, Immediate = true };
-
     private readonly List<IBehavior> _behaviors = [];
-    private readonly Dictionary<Type, IBehavior> _behaviorsByType = [];
-    private readonly Dictionary<string, object> _customFieldCache = [];
     private readonly IMessageBus _messageBus;
-    private readonly Type _underlyingType;
+    private readonly ILDtkEntity _underlyingEntity;
     private bool _disposed;
+
+    // Bridge properties for ECS integration
+    private Entity? _ecsEntity;
 
     public EntityWrapper(ILDtkEntity underlyingEntity, IMessageBus messageBus)
     {
-        UnderlyingEntity = underlyingEntity ?? throw new ArgumentNullException(nameof(underlyingEntity));
-        _messageBus = messageBus;
-        _underlyingType = underlyingEntity.GetType();
-
-        CacheCustomFields();
-
-        // Register with message bus if available
-        _messageBus.RegisterEntity(GetEntityId(), this);
-    }
-
-    // Wrapper-specific properties
-    public string EntityType => _underlyingType.Name;
-    public ILDtkEntity UnderlyingEntity { get; }
-
-    // ILDtkEntity delegation
-    public string Identifier
-    {
-        get => UnderlyingEntity.Identifier;
-        set => UnderlyingEntity.Identifier = value;
-    }
-
-    public Guid Iid
-    {
-        get => UnderlyingEntity.Iid;
-        set => UnderlyingEntity.Iid = value;
-    }
-
-    public int Uid
-    {
-        get => UnderlyingEntity.Uid;
-        set => UnderlyingEntity.Uid = value;
-    }
-
-    public Vector2 Size
-    {
-        get => UnderlyingEntity.Size;
-        set => UnderlyingEntity.Size = value;
-    }
-
-    public Vector2 Pivot
-    {
-        get => UnderlyingEntity.Pivot;
-        set => UnderlyingEntity.Pivot = value;
-    }
-
-    public Rectangle Tile
-    {
-        get => UnderlyingEntity.Tile;
-        set => UnderlyingEntity.Tile = value;
-    }
-
-    public Color SmartColor
-    {
-        get => UnderlyingEntity.SmartColor;
-        set => UnderlyingEntity.SmartColor = value;
+        _underlyingEntity = underlyingEntity ?? throw new ArgumentNullException(nameof(underlyingEntity));
+        _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
     }
 
     /// <summary>
-    ///     Cleanup when entity is destroyed.
+    /// Gets the underlying LDtk entity.
     /// </summary>
-    public void Dispose()
-    {
-        Dispose(true);
-    }
+    public ILDtkEntity UnderlyingEntity => _underlyingEntity;
 
+    /// <summary>
+    ///     Gets the entity type identifier.
+    /// </summary>
+    public string EntityType => _underlyingEntity.Identifier;
+
+    /// <summary>
+    ///     Gets or sets the entity position.
+    /// </summary>
     public Vector2 Position
     {
-        get => UnderlyingEntity.Position;
-        set => UnderlyingEntity.Position = value;
+        get => _underlyingEntity.Position;
+        set => _underlyingEntity.Position = value;
     }
 
-    // IMessageReceiver implementation
-    public void ReceiveMessage<T>(T message, string? senderId = null)
-        where T : class
+    /// <summary>
+    ///     Gets the entity size.
+    /// </summary>
+    public Vector2 Size => _underlyingEntity.Size;
+
+    /// <summary>
+    /// Gets the entity's unique identifier.
+    /// </summary>
+    public Guid Iid => _underlyingEntity.Iid;
+
+    /// <summary>
+    /// Gets the entity's UID.
+    /// </summary>
+    public int Uid => _underlyingEntity.Uid;
+
+    /// <summary>
+    /// Gets the associated ECS entity if this EntityWrapper has been bridged.
+    /// </summary>
+    public Entity? EcsEntity => _ecsEntity;
+
+    public void Dispose()
     {
-        DeliverMessageToBehaviors(message, senderId);
-    }
-
-    // Custom field access
-    public T GetField<T>(string fieldName)
-    {
-        if (_customFieldCache.TryGetValue(fieldName, out var value) && value is T typedValue)
-        {
-            return typedValue;
-        }
-
-        throw new ArgumentException($"Field '{fieldName}' not found or not of type {typeof(T).Name}");
-    }
-
-    public bool HasField(string fieldName)
-    {
-        return _customFieldCache.ContainsKey(fieldName);
-    }
-
-    public bool TryGetField<T>(string fieldName, out T? value)
-    {
-        if (_customFieldCache.TryGetValue(fieldName, out var obj) && obj is T typedValue)
-        {
-            value = typedValue;
-            return true;
-        }
-
-        value = default(T);
-        return false;
-    }
-
-    // Behavior management
-    public void AddBehavior(IBehavior? behavior)
-    {
-        if (behavior == null || _behaviorsByType.ContainsKey(behavior.GetType()))
+        if (_disposed)
         {
             return;
         }
 
-        _behaviors.Add(behavior);
-        _behaviorsByType[behavior.GetType()] = behavior;
-        behavior.Initialize(this);
+        foreach (IBehavior behavior in _behaviors)
+        {
+            if (behavior is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+
+        _behaviors.Clear();
+
+        _ecsEntity?.Dispose();
+        _disposed = true;
     }
 
-    public T? GetBehavior<T>()
-        where T : EntityBehavior
+    /// <summary>
+    /// Adds a behavior to this entity.
+    /// </summary>
+    public void AddBehavior(IBehavior behavior)
     {
-        return (T?)_behaviorsByType.GetValueOrDefault(typeof(T));
+        if (behavior == null)
+        {
+            throw new ArgumentNullException(nameof(behavior));
+        }
+
+        _behaviors.Add(behavior);
+        if (behavior is EntityBehavior entityBehavior)
+        {
+            entityBehavior.Initialize(this);
+        }
     }
 
+    /// <summary>
+    /// Gets a behavior of the specified type.
+    /// </summary>
+    public T? GetBehavior<T>() where T : class, IBehavior
+    {
+        foreach (IBehavior behavior in _behaviors)
+        {
+            if (behavior is T typedBehavior)
+            {
+                return typedBehavior;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Updates all behaviors.
+    /// </summary>
     public void Update(GameTime gameTime)
     {
         foreach (IBehavior behavior in _behaviors)
         {
             behavior.Update(gameTime);
         }
+
+        // Sync to ECS entity if bridged
+        SyncToEcsEntity();
     }
 
+    /// <summary>
+    /// Draws all behaviors.
+    /// </summary>
     public void Draw(SpriteBatch spriteBatch)
     {
         foreach (IBehavior behavior in _behaviors)
@@ -166,166 +151,115 @@ public sealed class EntityWrapper : IMessageReceiver, IDisposable
         }
     }
 
-    /// <summary>
-    ///     Send a local message to all behaviors on this entity (backward compatible).
-    /// </summary>
-    /// <param name="message">The message to send.</param>
-    public void SendMessage<T>(T message)
-        where T : class
+    // Component system methods (legacy EntityWrapper approach)
+    public bool HasComponent<T>() where T : class
     {
-        // Route through message bus with local scope for consistency
-        SendMessage(message, LocalImmediateOptions);
-    }
-
-    /// <summary>
-    ///     Send a message with advanced routing options.
-    /// </summary>
-    /// <param name="message">The message to send.</param>
-    /// <param name="options">The routing options for the message.</param>
-    public void SendMessage<T>(T message, MessageOptions? options)
-        where T : class
-    {
-        if (options != null && options.Scope != MessageScope.Local)
+        // For Phase 2, we'll use the ECS entity if available
+        if (_ecsEntity.HasValue && _ecsEntity.Value.Has<T>())
         {
-            // Delegate to message bus for non-local messages
-            _messageBus.SendMessage(message, options, GetEntityId());
-            return;
+            return true;
         }
 
-        // Handle local messages using the same pattern as ReceiveMessage
-        DeliverMessageToBehaviors(message, null);
+        // Legacy component check - simplified for Phase 2
+        return false;
     }
 
-    /// <summary>
-    ///     Deliver a message to all behaviors on this entity.
-    /// </summary>
-    /// <param name="message">The message to deliver.</param>
-    /// <param name="senderId">The ID of the sender (null for local messages).</param>
-    private void DeliverMessageToBehaviors<T>(T message, string? senderId)
-        where T : class
+    public T? GetComponent<T>() where T : class, new()
     {
-        // First try typed handlers if any behaviors implement IMessageHandler<T>
-        foreach (IBehavior behavior in _behaviors)
+        // For Phase 2, use ECS entity if available
+        if (_ecsEntity.HasValue && _ecsEntity.Value.Has<T>())
         {
-            if (behavior is IMessageHandler<T> typedHandler)
-            {
-                typedHandler.HandleMessage(message, senderId);
-            }
+            return _ecsEntity.Value.Get<T>();
         }
 
-        // Then fallback to existing OnMessage pattern for all behaviors
-        foreach (IBehavior behavior in _behaviors)
+        // Legacy component retrieval - simplified for Phase 2
+        return new T();
+    }
+
+    // Field access methods for LDtk custom fields
+    public bool HasField(string fieldName)
+    {
+        PropertyInfo? property = _underlyingEntity.GetType().GetProperty(fieldName);
+        return property != null;
+    }
+
+    public bool TryGetField<T>(string fieldName, out T? value)
+    {
+        value = default(T);
+        PropertyInfo? property = _underlyingEntity.GetType().GetProperty(fieldName);
+        if (property == null)
         {
-            behavior.OnMessage(message);
+            return false;
+        }
+
+        var rawValue = property.GetValue(_underlyingEntity);
+        if (rawValue is T typedValue)
+        {
+            value = typedValue;
+            return true;
+        }
+
+        return false;
+    }
+
+    public T? GetField<T>(string fieldName)
+    {
+        TryGetField(fieldName, out T? value);
+        return value;
+    }
+
+    // Messaging methods
+    public void SendMessage<T>(T message, string? targetEntityId = null) where T : class
+    {
+        var options = new MessageOptions
+        {
+            Scope = targetEntityId != null ? MessageScope.Entity : MessageScope.Global,
+            TargetEntityId = targetEntityId
+        };
+        _messageBus.SendMessage(message, options, Iid.ToString());
+    }
+
+    public void SendGlobalMessage<T>(T message) where T : class
+    {
+        var options = new MessageOptions { Scope = MessageScope.Global };
+        _messageBus.SendMessage(message, options, Iid.ToString());
+    }
+
+    /// <summary>
+    ///     Bridges this EntityWrapper to an ECS entity for dual-system operation.
+    /// </summary>
+    internal void BridgeToEcsEntity(Entity ecsEntity)
+    {
+        _ecsEntity = ecsEntity;
+
+        // Sync initial position to ECS
+        if (_ecsEntity.Value.Has<PositionComponent>())
+        {
+            ref PositionComponent ecsPos = ref _ecsEntity.Value.Get<PositionComponent>();
+            ecsPos.Position = Position;
+        }
+        else
+        {
+            _ecsEntity.Value.Set(new PositionComponent(Position));
         }
     }
 
     /// <summary>
-    ///     Send a message to a specific entity.
+    /// Syncs changes from EntityWrapper to ECS entity.
+    /// Called during migration phase to keep systems in sync.
     /// </summary>
-    /// <param name="message">The message to send.</param>
-    /// <param name="targetEntityId">The ID of the target entity.</param>
-    /// <param name="immediate">Whether to send the message immediately.</param>
-    public void SendMessageToEntity<T>(T message, string targetEntityId, bool immediate = true)
-        where T : class
+    public void SyncToEcsEntity()
     {
-        SendMessage(
-            message,
-            new MessageOptions { Scope = MessageScope.Entity, TargetEntityId = targetEntityId, Immediate = immediate });
-    }
-
-    /// <summary>
-    ///     Send a global message to all entities and systems.
-    /// </summary>
-    /// <param name="message">The message to send.</param>
-    /// <param name="immediate">Whether to send the message immediately.</param>
-    public void SendGlobalMessage<T>(T message, bool immediate = true)
-        where T : class
-    {
-        SendMessage(message, new MessageOptions { Scope = MessageScope.Global, Immediate = immediate });
-    }
-
-    /// <summary>
-    ///     Send a spatial message to entities within range (useful for magic effects).
-    /// </summary>
-    /// <param name="message">The message to send.</param>
-    /// <param name="range">The range within which to send the message.</param>
-    /// <param name="position">The position from which to measure range (defaults to entity position).</param>
-    /// <param name="includeSelf">Whether to include the sender in the message recipients.</param>
-    /// <param name="immediate">Whether to send the message immediately.</param>
-    public void SendSpatialMessage<T>(
-        T message,
-        float range,
-        Vector2? position = null,
-        bool includeSelf = false,
-        bool immediate = true)
-        where T : class
-    {
-        SendMessage(
-            message,
-            new MessageOptions
-            {
-                Scope = MessageScope.Spatial,
-                Position = position ?? Position,
-                Range = range,
-                IncludeSender = includeSelf,
-                Immediate = immediate
-            });
-    }
-
-    /// <summary>
-    ///     Protected implementation of Dispose pattern.
-    /// </summary>
-    /// <param name="disposing">True if disposing managed resources.</param>
-    private void Dispose(bool disposing)
-    {
-        if (_disposed)
+        if (!_ecsEntity.HasValue)
         {
             return;
         }
 
-        if (disposing)
+        // Sync position changes
+        if (_ecsEntity.Value.Has<PositionComponent>())
         {
-            // Dispose managed resources
-            _messageBus.UnregisterEntity(GetEntityId());
-
-            // Cleanup behaviors
-            foreach (IBehavior behavior in _behaviors)
-            {
-                behavior.Cleanup();
-            }
-
-            _behaviors.Clear();
-            _behaviorsByType.Clear();
+            ref PositionComponent ecsPos = ref _ecsEntity.Value.Get<PositionComponent>();
+            ecsPos.Position = Position;
         }
-
-        _disposed = true;
-    }
-
-    private void CacheCustomFields()
-    {
-        HashSet<string> entityInterfaceProps = [.. typeof(ILDtkEntity).GetProperties().Select(p => p.Name)];
-
-        foreach (PropertyInfo prop in _underlyingType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
-        {
-            if (entityInterfaceProps.Contains(prop.Name) || !prop.CanRead)
-            {
-                continue;
-            }
-
-            var value = prop.GetValue(UnderlyingEntity);
-            if (value != null)
-            {
-                _customFieldCache[prop.Name] = value;
-            }
-        }
-    }
-
-    /// <summary>
-    ///     Get unique entity identifier for messaging.
-    /// </summary>
-    private string GetEntityId()
-    {
-        return $"{EntityType}_{Iid}";
     }
 }

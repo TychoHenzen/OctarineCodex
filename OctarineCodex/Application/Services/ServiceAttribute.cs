@@ -10,7 +10,7 @@ namespace OctarineCodex.Application.Services;
 ///     The generic type parameter specifies the implementation class.
 /// </summary>
 /// <typeparam name="TImplementation">The implementation class for this service interface.</typeparam>
-[AttributeUsage(AttributeTargets.Interface)]
+[AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class)]
 public class ServiceAttribute<TImplementation>(ServiceLifetime lifetime = ServiceLifetime.Singleton) : Attribute
     where TImplementation : class
 {

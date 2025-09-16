@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
+using OctarineCodex.Application.Services;
 using OctarineCodex.Application.Systems;
 using OctarineCodex.Infrastructure.Logging;
 
@@ -12,6 +13,7 @@ namespace OctarineCodex.Infrastructure.Ecs;
 ///     Manages ECS system registration, execution ordering, and parallel processing.
 ///     Integrates with MonoGame game loop and provides system lifecycle management.
 /// </summary>
+[Service<SystemManager>]
 public class SystemManager(IServiceProvider serviceProvider, ILoggingService logger) : IDisposable
 {
     private readonly List<ISystem> _drawSystems = [];

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using OctarineCodex.Application.Services;
 using OctarineCodex.Infrastructure.Logging;
 
 namespace OctarineCodex.Infrastructure.Ecs;
@@ -9,6 +10,7 @@ namespace OctarineCodex.Infrastructure.Ecs;
 ///     Manages component type registration and validation for the ECS system.
 ///     Provides reflection-based component discovery and type safety enforcement.
 /// </summary>
+[Service<ComponentRegistry>]
 public class ComponentRegistry(ILoggingService logger)
 {
     private readonly Dictionary<string, Type> _componentsByName = [];

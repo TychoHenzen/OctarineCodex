@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using DefaultEcs;
+using OctarineCodex.Application.Services;
 using OctarineCodex.Infrastructure.Logging;
 
 namespace OctarineCodex.Infrastructure.Ecs;
@@ -9,6 +10,7 @@ namespace OctarineCodex.Infrastructure.Ecs;
 ///     Manages DefaultEcs World instances and handles entity lifecycle and scene transitions.
 ///     Integrates with existing service container while providing ECS world management.
 /// </summary>
+[Service<WorldManager>]
 public class WorldManager : IDisposable
 {
     private readonly ILoggingService _logger;

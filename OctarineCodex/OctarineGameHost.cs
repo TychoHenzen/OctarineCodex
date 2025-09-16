@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using OctarineCodex.Application.GameState;
+using OctarineCodex.Application.Services;
 using OctarineCodex.Application.Systems;
 using OctarineCodex.Infrastructure.Ecs;
 using OctarineCodex.Infrastructure.Logging;
@@ -9,6 +10,7 @@ using static OctarineCodex.OctarineConstants;
 
 namespace OctarineCodex;
 
+[Service<OctarineGameHost>]
 public class OctarineGameHost(
     ILoggingService logger,
     IGameInitializationManager initializationManager,

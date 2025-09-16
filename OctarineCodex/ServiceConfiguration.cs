@@ -2,12 +2,12 @@
 
 using System;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Xna.Framework.Content;
 using OctarineCodex.Application.Entities;
 using OctarineCodex.Application.Messaging;
 using OctarineCodex.Application.Services;
 using OctarineCodex.Application.Systems;
 using OctarineCodex.Infrastructure.Ecs;
+using OctarineCodex.Infrastructure.MonoGame;
 
 namespace OctarineCodex;
 
@@ -42,24 +42,8 @@ public static class ServiceConfiguration
     private static IServiceCollection AddCustomServices(this IServiceCollection services)
     {
         // Game host
-        services.AddSingleton<OctarineGameHost>();
+        services.AddSingleton<IContentManagerService, ContentManagerServiceFactory>();
 
-        // Register ContentManager factory - will be resolved when Game.Content is available
-        services.AddSingleton<ContentManager>(provider =>
-        {
-            var gameHost = provider.GetRequiredService<OctarineGameHost>();
-            return gameHost.Content;
-        });
-
-        // Entity behavior registry (no interface, just concrete class)
-        services.AddSingleton<EntityBehaviorRegistry>();
-
-        services.AddSingleton<WorldManager>();
-        services.AddSingleton<SystemManager>();
-        services.AddSingleton<ComponentRegistry>();
-
-        // ECS Systems
-        services.AddScoped<RenderSystem>();
         return services;
     }
 
@@ -82,5 +66,22 @@ public static class ServiceConfiguration
         // Register basic systems
         var systemManager = services.GetRequiredService<SystemManager>();
         systemManager.RegisterDrawSystem<RenderSystem>();
+        systemManager.RegisterUpdateSystem<CollisionSystem>();
+        systemManager.RegisterUpdateSystem<UpdateSystem>();
+
+        // ✅ NEW: Initialize ContentManagerService after Game is created
+        InitializeContentManagerService(services);
+    }
+
+
+    /// <summary>
+    ///     Initialize ContentManagerService after OctarineGameHost is created and has Content available
+    /// </summary>
+    private static void InitializeContentManagerService(IServiceProvider services)
+    {
+        var gameHost = services.GetRequiredService<OctarineGameHost>();
+        var contentManagerServiceFactory =
+            (ContentManagerServiceFactory)services.GetRequiredService<IContentManagerService>();
+        contentManagerServiceFactory.Initialize(gameHost.Content);
     }
 }

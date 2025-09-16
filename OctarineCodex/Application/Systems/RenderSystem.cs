@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using DefaultEcs;
 using DefaultEcs.System;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using OctarineCodex.Application.Services;
 using OctarineCodex.Domain.Components;
 using OctarineCodex.Infrastructure.Ecs;
 using OctarineCodex.Infrastructure.Logging;
+using OctarineCodex.Infrastructure.MonoGame;
 
 namespace OctarineCodex.Application.Systems;
 
@@ -16,9 +18,10 @@ namespace OctarineCodex.Application.Systems;
 ///     ECS system that handles rendering of entities with PositionComponent and RenderComponent.
 ///     Integrates with MonoGame SpriteBatch and provides depth sorting and culling.
 /// </summary>
+[Service<RenderSystem>(ServiceLifetime.Scoped)]
 public class RenderSystem : AEntitySetSystem<float>, ISystem
 {
-    private readonly ContentManager _contentManager;
+    private readonly IContentManagerService _contentManagerService; // ← CHANGED from ContentManager
     private readonly ILoggingService _logger;
     private readonly Dictionary<string, Texture2D> _textureCache = [];
     private bool _disposed;
@@ -26,11 +29,12 @@ public class RenderSystem : AEntitySetSystem<float>, ISystem
 
     public RenderSystem(
         WorldManager worldManager,
-        ContentManager contentManager,
+        IContentManagerService contentManagerService, // ← CHANGED from ContentManager
         ILoggingService logger)
         : base(worldManager.CurrentWorld.GetEntities().With<PositionComponent>().With<RenderComponent>().AsSet())
     {
-        _contentManager = contentManager ?? throw new ArgumentNullException(nameof(contentManager));
+        _contentManagerService =
+            contentManagerService ?? throw new ArgumentNullException(nameof(contentManagerService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -136,7 +140,7 @@ public class RenderSystem : AEntitySetSystem<float>, ISystem
 
         try
         {
-            var texture = _contentManager.Load<Texture2D>(assetName);
+            var texture = _contentManagerService.Load<Texture2D>(assetName); // ← CHANGED to use service
             _textureCache[assetName] = texture;
             return texture;
         }
@@ -146,6 +150,7 @@ public class RenderSystem : AEntitySetSystem<float>, ISystem
             return null;
         }
     }
+
 
     /// <summary>
     ///     Gets diagnostic information about the render system.

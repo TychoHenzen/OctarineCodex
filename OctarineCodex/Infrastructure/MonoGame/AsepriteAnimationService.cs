@@ -3,12 +3,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Microsoft.Xna.Framework.Content;
 using OctarineCodex.Domain.Animation;
 
 namespace OctarineCodex.Infrastructure.MonoGame;
 
-public class AsepriteAnimationService(ContentManager content) : IAsepriteAnimationService
+public class AsepriteAnimationService(IContentManagerService content) : IAsepriteAnimationService
 {
     private readonly Dictionary<string, Dictionary<string, AsepriteAnimation>> _loadedAnimations = new();
     private readonly Dictionary<string, AsepriteAnimationData> _loadedData = new();

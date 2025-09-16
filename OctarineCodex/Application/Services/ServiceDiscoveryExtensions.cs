@@ -28,7 +28,7 @@ public static class ServiceDiscoveryExtensions
 
         // Only scan interfaces that have the Service<T> attribute (opt-in, not opt-out)
         var interfacesWithServiceAttribute = assembly.GetTypes()
-            .Where(t => t.IsInterface)
+            .Where(t => t.IsInterface || t.IsClass)
             .Where(HasServiceAttribute)
             .ToList();
 
@@ -101,10 +101,6 @@ public static class ServiceDiscoveryExtensions
             .GetProperty(nameof(ServiceAttribute<object>.Lifetime))!
             .GetValue(serviceAttribute)!;
 
-        return new ServiceAttributeInfo
-        {
-            ImplementationType = implementationType,
-            Lifetime = lifetime
-        };
+        return new ServiceAttributeInfo { ImplementationType = implementationType, Lifetime = lifetime };
     }
 }
