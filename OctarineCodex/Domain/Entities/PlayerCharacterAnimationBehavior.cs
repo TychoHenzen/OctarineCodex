@@ -22,6 +22,8 @@ public class PlayerCharacterAnimationBehavior(
         IMessageHandler<MovementBlockedMessage>,
         IMessageHandler<PlayerIdleMessage>
 {
+    private readonly Guid _instanceId = Guid.NewGuid();
+
     private string _currentFacingDirection = "Down";
 
     private PlayerAnimationState _currentState = PlayerAnimationState.Idle;
@@ -42,7 +44,7 @@ public class PlayerCharacterAnimationBehavior(
     public void HandleMessage(PlayerIdleMessage message, string? senderId = null)
     {
         _currentState = PlayerAnimationState.Idle;
-        logger.Debug($"Player idle: {_currentFacingDirection}");
+        logger.Debug($"{_instanceId} Player idle: {_currentFacingDirection}");
         UpdateAnimation();
     }
 
@@ -56,8 +58,12 @@ public class PlayerCharacterAnimationBehavior(
         }
 
         _currentState = PlayerAnimationState.Walk;
-        _currentFacingDirection = GetDirectionFromVector(movement);
-        logger.Debug($"Player moved: {_currentFacingDirection}, State: {_currentState}");
+        var newDirection = GetDirectionFromVector(movement);
+
+        logger.Debug(
+            $"{_instanceId} Movement delta: {movement}, old direction: {_currentFacingDirection}, new direction: {newDirection}");
+
+        _currentFacingDirection = newDirection;
         UpdateAnimation();
     }
 
@@ -110,8 +116,28 @@ public class PlayerCharacterAnimationBehavior(
         {
             ["Bodies"] = new(
                 "Bodies",
-                0,
+                0, // Bottom layer
                 GetAvailableAssets("Bodies"),
+                "animation.json"),
+            ["Eyes"] = new(
+                "Eyes",
+                1, // Above bodies
+                GetAvailableAssets("Eyes"),
+                "animation.json"),
+            ["Hairstyles"] = new(
+                "Hairstyles",
+                2, // Above eyes
+                GetAvailableAssets("Hairstyles"),
+                "animation.json"),
+            ["Outfits"] = new(
+                "Outfits",
+                3, // Above hairstyles
+                GetAvailableAssets("Outfits"),
+                "animation.json"),
+            ["Accessories"] = new(
+                "Accessories",
+                4, // Top layer
+                GetAvailableAssets("Accessories"),
                 "animation.json")
         };
     }
@@ -121,6 +147,10 @@ public class PlayerCharacterAnimationBehavior(
         return category switch
         {
             "Bodies" => ["Body_01"],
+            "Eyes" => ["Eyes_01"],
+            "Hairstyles" => ["Hairstyle_01_01"],
+            "Outfits" => ["Outfit_01_01"],
+            "Accessories" => ["Accessory_01_Ladybug_01"],
             _ => [$"{category}_01"]
         };
     }
@@ -153,6 +183,7 @@ public class PlayerCharacterAnimationBehavior(
     {
         var stateName = _currentState switch
         {
+            PlayerAnimationState.Idle => "Idle",
             PlayerAnimationState.Walk => "Walk",
             PlayerAnimationState.Push => "Push",
             _ => "Idle"

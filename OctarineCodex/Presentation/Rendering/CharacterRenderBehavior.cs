@@ -89,9 +89,6 @@ public class CharacterRenderBehavior(ILoggingService logger, IContentManagerServ
         // Calculate source rectangle from tile ID
         Rectangle sourceRect = CalculateSourceRect(layer.TileId);
 
-        // Debug output
-        logger.Info($"Rendering layer {layer.LayerName}, TileID: {layer.TileId}, SourceRect: {sourceRect}");
-
         // Character size and position
         var destRect = new Rectangle(
             (int)Entity.Position.X,

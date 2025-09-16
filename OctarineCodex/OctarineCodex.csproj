@@ -71,7 +71,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Application\GameState\" />
     <Folder Include="Application\UseCases\" />
     <Folder Include="Content\bin\DesktopGL\Content\test_level2\simplified\Cliff\"/>
     <Folder Include="Content\bin\DesktopGL\Content\test_level2\simplified\Cliff_cave\"/>

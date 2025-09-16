@@ -58,12 +58,6 @@ public sealed class EntityWrapper : IMessageReceiver, IDisposable
         set => UnderlyingEntity.Uid = value;
     }
 
-    public Vector2 Position
-    {
-        get => UnderlyingEntity.Position;
-        set => UnderlyingEntity.Position = value;
-    }
-
     public Vector2 Size
     {
         get => UnderlyingEntity.Size;
@@ -88,24 +82,25 @@ public sealed class EntityWrapper : IMessageReceiver, IDisposable
         set => UnderlyingEntity.SmartColor = value;
     }
 
+    /// <summary>
+    ///     Cleanup when entity is destroyed.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+    }
+
+    public Vector2 Position
+    {
+        get => UnderlyingEntity.Position;
+        set => UnderlyingEntity.Position = value;
+    }
+
     // IMessageReceiver implementation
     public void ReceiveMessage<T>(T message, string? senderId = null)
         where T : class
     {
-        // First try typed handlers if any behaviors implement IMessageHandler<T>
-        foreach (IBehavior behavior in _behaviors)
-        {
-            if (behavior is IMessageHandler<T> typedHandler)
-            {
-                typedHandler.HandleMessage(message, senderId);
-            }
-        }
-
-        // Then fallback to existing OnMessage pattern for all behaviors
-        foreach (IBehavior behavior in _behaviors)
-        {
-            behavior.OnMessage(message);
-        }
+        DeliverMessageToBehaviors(message, senderId);
     }
 
     // Custom field access
@@ -197,7 +192,28 @@ public sealed class EntityWrapper : IMessageReceiver, IDisposable
             return;
         }
 
-        // Handle local messages directly
+        // Handle local messages using the same pattern as ReceiveMessage
+        DeliverMessageToBehaviors(message, null);
+    }
+
+    /// <summary>
+    ///     Deliver a message to all behaviors on this entity.
+    /// </summary>
+    /// <param name="message">The message to deliver.</param>
+    /// <param name="senderId">The ID of the sender (null for local messages).</param>
+    private void DeliverMessageToBehaviors<T>(T message, string? senderId)
+        where T : class
+    {
+        // First try typed handlers if any behaviors implement IMessageHandler<T>
+        foreach (IBehavior behavior in _behaviors)
+        {
+            if (behavior is IMessageHandler<T> typedHandler)
+            {
+                typedHandler.HandleMessage(message, senderId);
+            }
+        }
+
+        // Then fallback to existing OnMessage pattern for all behaviors
         foreach (IBehavior behavior in _behaviors)
         {
             behavior.OnMessage(message);
@@ -255,14 +271,6 @@ public sealed class EntityWrapper : IMessageReceiver, IDisposable
                 IncludeSender = includeSelf,
                 Immediate = immediate
             });
-    }
-
-    /// <summary>
-    ///     Cleanup when entity is destroyed.
-    /// </summary>
-    public void Dispose()
-    {
-        Dispose(true);
     }
 
     /// <summary>

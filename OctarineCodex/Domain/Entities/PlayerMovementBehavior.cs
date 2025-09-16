@@ -70,19 +70,22 @@ public class PlayerMovementBehavior(
             Entity.Position = correctedPos;
             collisionSystem.UpdateEntityPosition(_entityId, correctedPos);
 
-            // Check if movement was successful or blocked
-            if (correctedPos != desiredPos)
+            if (correctedPos != previousPos)
             {
-                // Movement was blocked - player is pushing against something
-                Entity.SendMessage(new MovementBlockedMessage(currentInput, delta, "Collision"));
-                _wasMovingLastFrame = false;
-            }
-            else if (correctedPos != previousPos)
-            {
-                // Successful movement
                 Vector2 actualDelta = correctedPos - previousPos;
                 Entity.SendGlobalMessage(new PlayerMovedMessage(correctedPos, actualDelta));
                 _wasMovingLastFrame = true;
+            }
+
+            if (correctedPos != desiredPos)
+            {
+                Entity.SendMessage(new MovementBlockedMessage(currentInput, delta, "Collision"));
+
+                // Only set _wasMovingLastFrame to false if position didn't change
+                if (correctedPos == previousPos)
+                {
+                    _wasMovingLastFrame = false;
+                }
             }
         }
         else
