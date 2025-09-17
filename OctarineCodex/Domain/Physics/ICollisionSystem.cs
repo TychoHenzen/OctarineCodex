@@ -1,14 +1,14 @@
 ﻿using System.Collections.Generic;
 using LDtk;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Application.Components;
 using OctarineCodex.Application.Services;
-using OctarineCodex.Domain.Physics.Shapes;
+using OctarineCodex.Domain.Components;
 using OctarineCodex.Infrastructure.Physics;
+// ← Updated to use Domain.Components
 
 namespace OctarineCodex.Domain.Physics;
 
-[Service<CollisionSystem>]
+[Service<CollisionSystem>] // ← This should point to Infrastructure.Physics.CollisionSystem
 public interface ICollisionSystem
 {
     /// <summary>
@@ -45,13 +45,7 @@ public interface ICollisionSystem
     /// <summary>
     /// Test a shape at a position for overlaps.
     /// </summary>
-    IEnumerable<CollisionTestResult> OverlapShape(ICollisionShape shape, Vector2 position,
-        CollisionLayers layersMask = CollisionLayers.All);
-
-    /// <summary>
-    /// Sweep a shape along a path and test for collision.
-    /// </summary>
-    CollisionTestResult ShapeCast(ICollisionShape shape, Vector2 start, Vector2 end,
+    IEnumerable<CollisionTestResult> OverlapArea(CollisionShapeType shapeType, Vector2 size, Vector2 position,
         CollisionLayers layersMask = CollisionLayers.All);
 
     /// <summary>

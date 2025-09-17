@@ -68,6 +68,7 @@ public static class ServiceConfiguration
         systemManager.RegisterDrawSystem<RenderSystem>();
         systemManager.RegisterUpdateSystem<CollisionSystem>();
         systemManager.RegisterUpdateSystem<UpdateSystem>();
+        systemManager.RegisterUpdateSystem<MagicSystem>();
 
         // ✅ NEW: Initialize ContentManagerService after Game is created
         InitializeContentManagerService(services);

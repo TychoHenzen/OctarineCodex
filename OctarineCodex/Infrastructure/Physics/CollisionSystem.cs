@@ -3,22 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using LDtk;
 using Microsoft.Xna.Framework;
-using OctarineCodex.Application.Components;
 using OctarineCodex.Application.Messages;
 using OctarineCodex.Application.Messaging;
+using OctarineCodex.Domain.Components;
 using OctarineCodex.Domain.Physics;
-using OctarineCodex.Domain.Physics.Shapes;
 using OctarineCodex.Extensions;
 using OctarineCodex.Infrastructure.Logging;
+// ← Updated namespace
 
 namespace OctarineCodex.Infrastructure.Physics;
 
 public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logger) : ICollisionSystem
 {
-    private readonly Dictionary<Point, CollisionLayers> _tileCollision = new();
-    private readonly Dictionary<string, (CollisionComponent Component, Vector2 Position)> _entities = new();
     private readonly Dictionary<string, HashSet<string>> _currentTriggerOverlaps = new();
+    private readonly Dictionary<string, (CollisionComponent Component, Vector2 Position)> _entities = new();
     private readonly HashSet<(string, string)> _processedCollisions = new();
+    private readonly Dictionary<Point, CollisionLayers> _tileCollision = new();
     private int _tileSize = 16;
 
     public void InitializeLevels(IEnumerable<LDtkLevel> levels)
@@ -122,7 +122,7 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
         Vector2 direction = end - start;
         var distance = direction.Length();
 
-        if (distance.EqualsAppr(0))
+        if (distance == 0)
         {
             return CollisionTestResult.NoHit();
         }
@@ -154,9 +154,8 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
                 continue;
             }
 
-            ICollisionShape shape = TranslateShape(component.Shape, position);
-            CollisionTestResult? hit =
-                RayShapeIntersection(origin, direction, shape, minDistance);
+            Rectangle entityBounds = GetEntityBounds(component, position);
+            CollisionTestResult? hit = RayBoxIntersection(origin, direction, entityBounds, minDistance);
 
             if (hit == null || hit.Distance >= minDistance)
             {
@@ -175,14 +174,13 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
         return closestHit;
     }
 
-    public IEnumerable<CollisionTestResult> OverlapShape(ICollisionShape shape, Vector2 position,
+    public IEnumerable<CollisionTestResult> OverlapArea(CollisionShapeType shapeType, Vector2 size, Vector2 position,
         CollisionLayers layersMask = CollisionLayers.All)
     {
         var results = new List<CollisionTestResult>();
-        ICollisionShape translatedShape = TranslateShape(shape, position);
+        Rectangle bounds = GetShapeBounds(shapeType, size, position);
 
         // Check tile overlaps
-        Rectangle bounds = translatedShape.GetFinalBounds();
         Rectangle tileBounds = bounds.ToTileCoordinates(_tileSize);
 
         tileBounds.ForEachPosition(point =>
@@ -190,9 +188,8 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
             if (_tileCollision.TryGetValue(point, out CollisionLayers layer) && (layer & layersMask) != 0)
             {
                 var tileRect = new Rectangle(point.X * _tileSize, point.Y * _tileSize, _tileSize, _tileSize);
-                var tileShape = new BoxShape(tileRect);
 
-                if (translatedShape.Intersects(tileShape))
+                if (bounds.Intersects(tileRect))
                 {
                     results.Add(CollisionTestResult.HitTile(
                         new Vector2(tileRect.Center.X, tileRect.Center.Y),
@@ -212,8 +209,8 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
                 continue;
             }
 
-            ICollisionShape entityShape = TranslateShape(component.Shape, entityPos);
-            if (translatedShape.Intersects(entityShape))
+            Rectangle entityBounds = GetEntityBounds(component, entityPos);
+            if (bounds.Intersects(entityBounds))
             {
                 results.Add(CollisionTestResult.HitEntity(
                     entityPos,
@@ -227,46 +224,6 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
         return results;
     }
 
-    public CollisionTestResult ShapeCast(ICollisionShape shape, Vector2 start, Vector2 end,
-        CollisionLayers layersMask = CollisionLayers.All)
-    {
-        Vector2 direction = end - start;
-        var distance = direction.Length();
-
-        if (distance.EqualsAppr(0))
-        {
-            return CollisionTestResult.NoHit();
-        }
-
-        direction.Normalize();
-
-        // Simplified shapecast using multiple raycasts from shape bounds
-        Rectangle bounds = shape.GetFinalBounds();
-        var testPoints = new[]
-        {
-            new Vector2(bounds.Left, bounds.Top), new Vector2(bounds.Right, bounds.Top),
-            new Vector2(bounds.Left, bounds.Bottom), new Vector2(bounds.Right, bounds.Bottom),
-            new Vector2(bounds.Center.X, bounds.Center.Y)
-        };
-
-        CollisionTestResult closestHit = CollisionTestResult.NoHit();
-        var minDistance = distance;
-
-        foreach (Vector2 point in testPoints)
-        {
-            Vector2 rayStart = start + point - new Vector2(bounds.Center.X, bounds.Center.Y);
-            CollisionTestResult hit = Raycast(rayStart, direction, distance, layersMask);
-
-            if (hit.Hit && hit.Distance < minDistance)
-            {
-                minDistance = hit.Distance;
-                closestHit = hit;
-            }
-        }
-
-        return closestHit;
-    }
-
     public Vector2 ResolveMovement(string entityId, Vector2 currentPos, Vector2 desiredPos)
     {
         if (!_entities.TryGetValue(entityId, out (CollisionComponent Component, Vector2 Position) entity))
@@ -275,24 +232,23 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
             return desiredPos;
         }
 
-        ICollisionShape shape = TranslateShape(entity.Component.Shape, desiredPos);
-        Rectangle bounds = shape.GetFinalBounds();
+        Rectangle bounds = GetEntityBounds(entity.Component, desiredPos);
 
         // Check tile collision
         if (CheckTileCollision(bounds, entity.Component.CollidesWith))
         {
             // Try horizontal movement only
             var horizontalPos = new Vector2(desiredPos.X, currentPos.Y);
-            ICollisionShape horizontalShape = TranslateShape(entity.Component.Shape, horizontalPos);
-            if (!CheckTileCollision(horizontalShape.GetFinalBounds(), entity.Component.CollidesWith))
+            Rectangle horizontalBounds = GetEntityBounds(entity.Component, horizontalPos);
+            if (!CheckTileCollision(horizontalBounds, entity.Component.CollidesWith))
             {
                 return horizontalPos;
             }
 
             // Try vertical movement only
             var verticalPos = new Vector2(currentPos.X, desiredPos.Y);
-            ICollisionShape verticalShape = TranslateShape(entity.Component.Shape, verticalPos);
-            if (!CheckTileCollision(verticalShape.GetFinalBounds(), entity.Component.CollidesWith))
+            Rectangle verticalBounds = GetEntityBounds(entity.Component, verticalPos);
+            if (!CheckTileCollision(verticalBounds, entity.Component.CollidesWith))
             {
                 return verticalPos;
             }
@@ -321,10 +277,10 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
                     continue;
                 }
 
-                ICollisionShape shapeA = TranslateShape(compA.Shape, posA);
-                ICollisionShape shapeB = TranslateShape(compB.Shape, posB);
+                Rectangle boundsA = GetEntityBounds(compA, posA);
+                Rectangle boundsB = GetEntityBounds(compB, posB);
 
-                if (shapeA.Intersects(shapeB))
+                if (boundsA.Intersects(boundsB))
                 {
                     ProcessCollisionPair(idA, compA, posA, idB, compB, posB);
                 }
@@ -345,10 +301,10 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
                     continue;
                 }
 
-                ICollisionShape triggerShape = TranslateShape(triggerData.Component.Shape, triggerData.Position);
-                ICollisionShape entityShape = TranslateShape(entityData.Component.Shape, entityData.Position);
+                Rectangle triggerBounds = GetEntityBounds(triggerData.Component, triggerData.Position);
+                Rectangle entityBounds = GetEntityBounds(entityData.Component, entityData.Position);
 
-                if (!triggerShape.Intersects(entityShape))
+                if (!triggerBounds.Intersects(entityBounds))
                 {
                     toRemove.Add(entityId);
                     messageBus.SendMessage(new TriggerExitMessage(triggerId, entityId, triggerData.Component.Layers));
@@ -370,6 +326,123 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
         _processedCollisions.Clear();
     }
 
+    // Helper methods for simplified collision shapes
+    private Rectangle GetEntityBounds(CollisionComponent component, Vector2 position)
+    {
+        return GetShapeBounds(component.ShapeType, component.Size, position);
+    }
+
+    private static Rectangle GetShapeBounds(CollisionShapeType shapeType, Vector2 size, Vector2 position)
+    {
+        return shapeType switch
+        {
+            CollisionShapeType.Rectangle => new Rectangle(
+                (int)(position.X - (size.X / 2)),
+                (int)(position.Y - (size.Y / 2)),
+                (int)size.X,
+                (int)size.Y),
+            CollisionShapeType.Circle => new Rectangle(
+                (int)(position.X - (size.X / 2)),
+                (int)(position.Y - (size.X / 2)),
+                (int)size.X,
+                (int)size.X), // Use X for both width and height for circle
+            _ => Rectangle.Empty
+        };
+    }
+
+    private bool CheckTileCollision(Rectangle bounds, CollisionLayers layersMask)
+    {
+        Rectangle tileBounds = bounds.ToTileCoordinates(_tileSize);
+
+        // Check if ANY tile has a collision that matches the layer mask
+        for (var x = tileBounds.Left; x <= tileBounds.Right; x++)
+        {
+            for (var y = tileBounds.Top; y <= tileBounds.Bottom; y++)
+            {
+                var point = new Point(x, y);
+                if (_tileCollision.TryGetValue(point, out CollisionLayers layer)
+                    && (layer & layersMask) != 0)
+                {
+                    return true; // Found a collision tile that blocks movement
+                }
+            }
+        }
+
+        return false; // No blocking collision found
+    }
+
+    // Simplified raycast implementation for tiles
+    private CollisionTestResult RaycastTiles(Vector2 origin, Vector2 direction, float maxDistance,
+        CollisionLayers layersMask)
+    {
+        // Simple implementation - step along ray and check tiles
+        var steps = (int)(maxDistance / (_tileSize * 0.5f));
+        Vector2 step = direction * (_tileSize * 0.5f);
+
+        for (var i = 0; i <= steps; i++)
+        {
+            Vector2 currentPos = origin + (step * i);
+            var tilePos = new Point((int)(currentPos.X / _tileSize), (int)(currentPos.Y / _tileSize));
+
+            if (_tileCollision.TryGetValue(tilePos, out CollisionLayers layer) && (layer & layersMask) != 0)
+            {
+                var distance = Vector2.Distance(origin, currentPos);
+                Vector2 normal = GetTileNormal(origin, tilePos);
+                return CollisionTestResult.HitTile(currentPos, normal, distance, tilePos, layer);
+            }
+        }
+
+        return CollisionTestResult.NoHit();
+    }
+
+    private Vector2 GetTileNormal(Vector2 rayOrigin, Point tile)
+    {
+        var tileCenter = new Vector2((tile.X * _tileSize) + (_tileSize / 2f), (tile.Y * _tileSize) + (_tileSize / 2f));
+        Vector2 toTile = tileCenter - rayOrigin;
+
+        return Math.Abs(toTile.X) > Math.Abs(toTile.Y)
+            ? new Vector2(Math.Sign(toTile.X), 0)
+            : new Vector2(0, Math.Sign(toTile.Y));
+    }
+
+    private static CollisionTestResult? RayBoxIntersection(
+        Vector2 origin, Vector2 direction, Rectangle box, float maxDistance)
+    {
+        // Ray-AABB intersection
+        var tMin = (box.Left - origin.X) / direction.X;
+        var tMax = (box.Right - origin.X) / direction.X;
+
+        if (tMin > tMax)
+        {
+            (tMin, tMax) = (tMax, tMin);
+        }
+
+        var tyMin = (box.Top - origin.Y) / direction.Y;
+        var tyMax = (box.Bottom - origin.Y) / direction.Y;
+
+        if (tyMin > tyMax)
+        {
+            (tyMin, tyMax) = (tyMax, tyMin);
+        }
+
+        if (tMin > tyMax || tyMin > tMax)
+        {
+            return null;
+        }
+
+        tMin = Math.Max(tMin, tyMin);
+
+        if (tMin < 0 || tMin > maxDistance)
+        {
+            return null;
+        }
+
+        Vector2 point = origin + (direction * tMin);
+        Vector2 normal = GetBoxNormal(box, point);
+
+        return new CollisionTestResult(point, normal, tMin);
+    }
+
     private static Vector2 GetBoxNormal(Rectangle box, Vector2 point)
     {
         var distLeft = Math.Abs(point.X - box.Left);
@@ -379,38 +452,22 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
 
         var minDist = Math.Min(Math.Min(distLeft, distRight), Math.Min(distTop, distBottom));
 
-        if (minDist.EqualsAppr(distLeft))
+        if (Math.Abs(minDist - distLeft) < 0.1f)
         {
             return new Vector2(-1, 0);
         }
 
-        if (minDist.EqualsAppr(distRight))
+        if (Math.Abs(minDist - distRight) < 0.1f)
         {
             return new Vector2(1, 0);
         }
 
-        if (minDist.EqualsAppr(distTop))
+        if (Math.Abs(minDist - distTop) < 0.1f)
         {
             return new Vector2(0, -1);
         }
 
         return new Vector2(0, 1);
-    }
-
-    private static CollisionLayers ParseLayerType(string identifier)
-    {
-        var lower = identifier.ToLowerInvariant();
-
-        return lower switch
-        {
-            _ when lower.Contains("solid") || lower.Contains("collision") || lower.Contains("wall") => CollisionLayers
-                .Solid,
-            _ when lower.Contains("platform") => CollisionLayers.Platform,
-            _ when lower.Contains("trigger") => CollisionLayers.Trigger,
-            _ when lower.Contains("water") => CollisionLayers.Water,
-            _ when lower.Contains("hazard") || lower.Contains("damage") => CollisionLayers.Hazard,
-            _ => CollisionLayers.Solid
-        };
     }
 
     private void ProcessCollisionPair(
@@ -441,7 +498,7 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
         {
             Vector2 contactPoint = (posA + posB) / 2;
             Vector2 normal = Vector2.Normalize(posB - posA);
-            var penetration = CalculatePenetrationDepth(compA.Shape, posA, compB.Shape, posB);
+            var penetration = CalculatePenetrationDepth(compA, posA, compB, posB);
 
             messageBus.SendMessage(new CollisionMessage(idA, idB, contactPoint, normal, penetration));
         }
@@ -462,182 +519,15 @@ public sealed class CollisionSystem(IMessageBus messageBus, ILoggingService logg
         }
     }
 
-    private float CalculatePenetrationDepth(ICollisionShape shapeA, Vector2 posA, ICollisionShape shapeB, Vector2 posB)
+    private float CalculatePenetrationDepth(CollisionComponent compA, Vector2 posA, CollisionComponent compB,
+        Vector2 posB)
     {
-        // Simplified penetration calculation
-        Rectangle boundsA = TranslateShape(shapeA, posA).GetFinalBounds();
-        Rectangle boundsB = TranslateShape(shapeB, posB).GetFinalBounds();
+        Rectangle boundsA = GetEntityBounds(compA, posA);
+        Rectangle boundsB = GetEntityBounds(compB, posB);
 
         var xOverlap = Math.Min(boundsA.Right, boundsB.Right) - Math.Max(boundsA.Left, boundsB.Left);
         var yOverlap = Math.Min(boundsA.Bottom, boundsB.Bottom) - Math.Max(boundsA.Top, boundsB.Top);
 
         return Math.Min(xOverlap, yOverlap);
-    }
-
-    private ICollisionShape TranslateShape(ICollisionShape shape, Vector2 position)
-    {
-        return shape switch
-        {
-            BoxShape box => new BoxShape(box.Bounds, box.Offset + position),
-            CircleShape circle => new CircleShape(circle.Center + position, circle.Radius),
-            CompositeShape composite => new CompositeShape(
-                composite.Shapes.Select(s => TranslateShape(s, position)).ToArray()),
-            _ => shape
-        };
-    }
-
-    private bool CheckTileCollision(Rectangle bounds, CollisionLayers layersMask)
-    {
-        Rectangle tileBounds = bounds.ToTileCoordinates(_tileSize);
-
-        // Check if ANY tile has a collision that matches the layer mask
-        for (var x = tileBounds.Left; x <= tileBounds.Right; x++)
-        {
-            for (var y = tileBounds.Top; y <= tileBounds.Bottom; y++)
-            {
-                var point = new Point(x, y);
-                if (_tileCollision.TryGetValue(point, out CollisionLayers layer)
-                    && (layer & layersMask) != 0)
-                {
-                    return true; // Found a collision tile that blocks movement
-                }
-            }
-        }
-
-        return false; // No blocking collision found
-    }
-
-    private CollisionTestResult RaycastTiles(Vector2 origin, Vector2 direction, float maxDistance,
-        CollisionLayers layersMask)
-    {
-        // DDA line algorithm for tile traversal
-        var currentTile = new Point((int)(origin.X / _tileSize), (int)(origin.Y / _tileSize));
-        var stepX = Math.Sign(direction.X);
-        var stepY = Math.Sign(direction.Y);
-
-        float tMaxX;
-        if (direction.X.EqualsAppr(0))
-        {
-            tMaxX = float.MaxValue;
-        }
-        else
-        {
-            if (stepX > 0)
-            {
-                tMaxX = (((currentTile.X + 1) * _tileSize) - origin.X) /
-                        direction.X;
-            }
-            else
-            {
-                tMaxX = ((currentTile.X * _tileSize) - origin.X) /
-                        direction.X;
-            }
-        }
-
-        float tMaxY;
-        if (direction.Y.EqualsAppr(0))
-        {
-            tMaxY = float.MaxValue;
-        }
-        else
-        {
-            if (stepY > 0)
-            {
-                tMaxY = (((currentTile.Y + 1) * _tileSize) - origin.Y) /
-                        direction.Y;
-            }
-            else
-            {
-                tMaxY = ((currentTile.Y * _tileSize) - origin.Y) /
-                        direction.Y;
-            }
-        }
-
-        var tDeltaX = Math.Abs(_tileSize / direction.X);
-        var tDeltaY = Math.Abs(_tileSize / direction.Y);
-
-        var distance = 0f;
-
-        while (distance < maxDistance)
-        {
-            if (_tileCollision.TryGetValue(currentTile, out CollisionLayers layer) && (layer & layersMask) != 0)
-            {
-                Vector2 hitPoint = origin + (direction * distance);
-                Vector2 normal = GetTileNormal(origin, currentTile);
-                return CollisionTestResult.HitTile(hitPoint, normal, distance, currentTile, layer);
-            }
-
-            if (tMaxX < tMaxY)
-            {
-                distance = tMaxX;
-                tMaxX += tDeltaX;
-                currentTile.X += stepX;
-            }
-            else
-            {
-                distance = tMaxY;
-                tMaxY += tDeltaY;
-                currentTile.Y += stepY;
-            }
-        }
-
-        return CollisionTestResult.NoHit();
-    }
-
-    private Vector2 GetTileNormal(Vector2 rayOrigin, Point tile)
-    {
-        var tileCenter = new Vector2((tile.X * _tileSize) + (_tileSize / 2f), (tile.Y * _tileSize) + (_tileSize / 2f));
-        Vector2 toTile = tileCenter - rayOrigin;
-
-        return Math.Abs(toTile.X) > Math.Abs(toTile.Y)
-            ? new Vector2(Math.Sign(toTile.X), 0)
-            : new Vector2(0, Math.Sign(toTile.Y));
-    }
-
-    private static CollisionTestResult? RayShapeIntersection(
-        Vector2 origin, Vector2 direction, ICollisionShape shape, float maxDistance)
-    {
-        // Simplified ray-shape intersection
-        Rectangle bounds = shape.GetFinalBounds();
-
-        // Ray-AABB intersection
-        var tMin = (bounds.Left - origin.X) / direction.X;
-        var tMax = (bounds.Right - origin.X) / direction.X;
-
-        if (tMin > tMax)
-        {
-            (tMin, tMax) = (tMax, tMin);
-        }
-
-        var tyMin = (bounds.Top - origin.Y) / direction.Y;
-        var tyMax = (bounds.Bottom - origin.Y) / direction.Y;
-
-        if (tyMin > tyMax)
-        {
-            (tyMin, tyMax) = (tyMax, tyMin);
-        }
-
-        if (tMin > tyMax || tyMin > tMax)
-        {
-            return null;
-        }
-
-        tMin = Math.Max(tMin, tyMin);
-        tMax = Math.Min(tMax, tyMax);
-
-        if (tMin < 0)
-        {
-            tMin = tMax;
-        }
-
-        if (tMin < 0 || tMin > maxDistance)
-        {
-            return null;
-        }
-
-        Vector2 point = origin + (direction * tMin);
-        Vector2 normal = GetBoxNormal(bounds, point);
-
-        return new CollisionTestResult(point, normal, tMin);
     }
 }

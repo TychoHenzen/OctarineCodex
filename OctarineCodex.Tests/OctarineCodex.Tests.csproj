@@ -25,8 +25,4 @@
       <ProjectReference Include="..\OctarineCodex\OctarineCodex.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <Folder Include="Application\Systems\"/>
-    </ItemGroup>
-
 </Project>

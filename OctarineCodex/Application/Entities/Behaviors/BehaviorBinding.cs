@@ -47,7 +47,7 @@ public class BehaviorBinding<T>(Func<IServiceProvider, T>? factory = null) : IBe
     public BehaviorBinding<T> WithMagicVector(EleAspects.Element element, float threshold)
     {
         _predicates.Add(entity =>
-            entity.TryGetField("magicVector", out Signature? vector) &&
+            entity.TryGetField("magicVector", out MagicSignature? vector) &&
             vector?.GetComponent(element) > threshold);
         return this;
     }

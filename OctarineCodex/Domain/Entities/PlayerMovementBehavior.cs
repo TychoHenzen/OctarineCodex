@@ -1,12 +1,12 @@
 ﻿// OctarineCodex/Entities/Behaviors/PlayerMovementBehavior.cs
 
 using Microsoft.Xna.Framework;
-using OctarineCodex.Application.Components;
 using OctarineCodex.Application.Entities;
 using OctarineCodex.Application.Messages;
+using OctarineCodex.Domain.Components;
 using OctarineCodex.Domain.Physics;
-using OctarineCodex.Domain.Physics.Shapes;
 using OctarineCodex.Presentation.Input;
+// ← Updated namespace
 
 namespace OctarineCodex.Domain.Entities;
 
@@ -33,11 +33,11 @@ public class PlayerMovementBehavior(
         // Convert Guid to string for entity ID
         _entityId = Entity.Iid.ToString();
 
-        // Register player with collision system
-        var playerShape = new BoxShape(
-            new Rectangle(0, 0, OctarineConstants.PlayerSize, OctarineConstants.PlayerSize));
-
-        var collisionComponent = new CollisionComponent(playerShape, CollisionLayers.Entity)
+        // Register player with collision system using new ECS component
+        var collisionComponent = new CollisionComponent(
+            CollisionShapeType.Rectangle,
+            new Vector2(OctarineConstants.PlayerSize, OctarineConstants.PlayerSize),
+            CollisionLayers.Entity)
         {
             CollidesWith = CollisionLayers.Solid | CollisionLayers.Platform, IsStatic = false
         };
@@ -124,10 +124,10 @@ public class PlayerMovementBehavior(
 
     private void EnsureRegisteredWithCollisionSystem()
     {
-        var playerShape = new BoxShape(
-            new Rectangle(0, 0, OctarineConstants.PlayerSize, OctarineConstants.PlayerSize));
-
-        var collisionComponent = new CollisionComponent(playerShape, CollisionLayers.Entity)
+        var collisionComponent = new CollisionComponent(
+            CollisionShapeType.Rectangle,
+            new Vector2(OctarineConstants.PlayerSize, OctarineConstants.PlayerSize),
+            CollisionLayers.Entity)
         {
             CollidesWith = CollisionLayers.Solid | CollisionLayers.Platform, IsStatic = false
         };

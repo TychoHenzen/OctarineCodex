@@ -80,7 +80,7 @@ public abstract class EntityBehavior : IBehavior
 
     protected bool HasMagicVector(EleAspects.Element element, float threshold)
     {
-        return Entity.TryGetField("magicVector", out Signature? vector) &&
+        return Entity.TryGetField("magicVector", out MagicSignature? vector) &&
                vector?.GetComponent(element) > threshold;
     }
 }
